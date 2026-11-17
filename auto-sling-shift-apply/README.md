@@ -1,0 +1,19 @@
+# Sling Shift Auto Apply
+
+Open **Sling Shift Auto Apply** from Toolbox Home or the left rail. For account setup and the Windows build, see [Thong Khong Toolbox](../README.md).
+
+## Try the sample schedule
+
+1. Enable **Demo mode** under **Sling → Rules**.
+2. The MATH 326 exception starts with **Confirmed dates**, a ready time of `12:30`, and Tuesdays and Thursdays selected. Enter `2026-11-17` in **Confirmed dates** to allow only the sample Tuesday. Choose **Recurring** to use the ready time for each matching class. Ready time includes the walk to work.
+3. Choose **Preview matches**, then **Auto apply** to simulate applications to the checked shifts in **Results**.
+
+**Week** loads the current schedule when you open Sling Shift Auto Apply. Choose **Agenda** for a list of the selected week. Hover over a shift in either calendar for its time, role, location, status, and any notes.
+
+## Live runs
+
+**Preview matches** opens **Results** with the calendar and shift checklist. The calendar overlays commitments and eligible shifts. Pending applications are hidden from the calendar and checklist. Use the arrows on **Week** to select the week you want to preview. Eligible shifts start checked. Select a **Needs confirmation** row to approve its listed class exception for that shift. Pending and skipped rows are hidden from the checklist. Calendar commitments and assigned shifts can block a match. Pending applications and other offers do not block overlapping applications. **Auto apply** rechecks the schedule and submits only checked shifts that are still eligible. Sling approval and assignment follow the employer's settings. If a submission result is ambiguous, check the shift in Sling. The module journals submissions locally to avoid a repeat request.
+
+Calendar selections, work rules, and the application journal are stored under `%LOCALAPPDATA%\ThongKhongToolbox\Sling`. Toolbox Settings manages the account connections.
+
+[Sling API and authentication](https://github.com/getsling/getsling-api-docs)
