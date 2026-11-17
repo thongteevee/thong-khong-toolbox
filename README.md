@@ -57,3 +57,7 @@ The executable is written to `dist\ThongKhongToolbox.exe`. Use `-OutputDirectory
 | `src/Common` | HTTP transport and encrypted local storage |
 
 For a personal build with a preconfigured Google OAuth client, set `TOOLBOX_GOOGLE_CLIENT_ID` and `TOOLBOX_GOOGLE_CLIENT_SECRET` in the build environment. GitHub release builds let each user enter their own OAuth client details in Settings.
+
+## Public website
+
+The [website and Google OAuth handoff](docs/website-handoff.md) covers the product page, download, privacy policy, terms, and Google Auth Platform settings.
