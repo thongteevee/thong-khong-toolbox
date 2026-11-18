@@ -20,7 +20,8 @@ Serve the pages over HTTPS and make them readable without signing in. Use ordina
 
 Preview which Sling shifts fit your Google Calendar and submit applications for the shifts you choose.
 
-- **Download for Windows** links directly to [ThongKhongToolbox.exe](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolbox.exe). It is a portable executable for Windows with .NET Framework 4.8 or later. Link separately to [release notes and checksum](https://github.com/thongteevee/thong-khong-toolbox/releases/latest) and the [source and setup guide](https://github.com/thongteevee/thong-khong-toolbox#readme).
+- **Download Windows installer** links directly to [ThongKhongToolboxSetup.exe](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolboxSetup.exe). Setup includes a User Agreement and Privacy Policy, installs for the current Windows user, and adds a Start menu shortcut.
+- **Download portable EXE** links directly to [ThongKhongToolbox.exe](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolbox.exe). Both downloads require Windows with .NET Framework 4.8 or later. Link to [release notes and checksums](https://github.com/thongteevee/thong-khong-toolbox/releases/latest) and the [source and setup guide](https://github.com/thongteevee/thong-khong-toolbox#readme).
 - **Try it with sample shifts.** Open Sling Shift Auto Apply, enable **Demo mode** under **Rules**, and select **Preview matches**. Demo mode uses sample data and simulates applications.
 - **Use your own schedule.** Connect Google Calendar and Sling in Toolbox Settings, choose the calendars to check, and select a week. **Preview matches** overlays shifts on the calendar and opens a checklist. Users can adjust the selection and explicitly confirm flagged shifts. **Auto apply** rechecks and submits selected shifts. Sling supervisors decide which shifts to assign.
 - **Explain current Google setup before download.** The public EXE currently requires each user to configure a Google **Desktop app** OAuth client in Toolbox Settings. Google consent opens in the user's browser from the desktop app. Link to the [live setup instructions](https://github.com/thongteevee/thong-khong-toolbox#connect-google-calendar). A website login or one-click Google setup would require separate desktop release work.
@@ -28,7 +29,7 @@ Preview which Sling shifts fit your Google Calendar and submit applications for 
 
 ## Privacy Policy content
 
-Use these facts to draft plain-language policy copy for the current Windows release. Confirm the website host's actual logging, cookies, analytics, and retention before publishing the website section. A static site with download links and a support email is sufficient. Keep sign-in, calendar data, and credentials inside the desktop app.
+Use the [desktop Privacy Policy](../installer/PrivacyPolicy.txt) and these facts to draft the website copy for the current Windows release. Confirm the website host's actual logging, cookies, analytics, and retention before publishing the website section. A static site with download links and a support email is sufficient. Keep sign-in, calendar data, and credentials inside the desktop app.
 
 | Data | Access, use, and storage |
 | --- | --- |
@@ -50,7 +51,7 @@ Implementation references for the policy include [Google Calendar access](../src
 
 ## Terms of Service content
 
-Identify the operator and the software covered. Explain use with accounts the user is authorized to access, that preview checks availability and **Auto apply** submits the selection to Sling, and that users review selections and confirm submitted applications in Sling. Explain that availability can change and that assignments are decided in Sling. Identify Google and Sling as separate services with their own terms. Get the owner's approval on the operator identity, contact, effective date, and any legal clauses before publishing.
+Use the [desktop User Agreement](../installer/UserAgreement.txt) as source copy. Identify the operator and the software covered. Explain use with accounts the user is authorized to access, that preview checks availability and **Auto apply** submits the selection to Sling, and that users review selections and confirm submitted applications in Sling. Explain that availability can change and that assignments are decided in Sling. Identify Google and Sling as separate services with their own terms. Get the owner's approval on the operator identity, contact, effective date, and any legal clauses before publishing.
 
 ## Google Auth Platform settings
 
@@ -82,9 +83,9 @@ Link the live Privacy Policy from Toolbox near **Connect Google** in the next de
 
 - Confirm the public support email, operator information, effective date, hosting practices, and approved logo with the owner. Keep OAuth secrets, downloaded client JSON, session tokens, and private screenshots out of the site and repository.
 - Build and deploy the three routes through the existing site's project. Check each canonical HTTPS URL returns its intended content when signed out and that the product page links to both policies.
-- Test the download on the deployed product page while signed out. Confirm it serves `ThongKhongToolbox.exe` and that the release notes and setup links work.
+- Test both downloads on the deployed product page while signed out. Confirm the expected setup and portable EXE filenames and check the release notes and setup links.
 - Give the owner the three live URLs to enter under Branding and report any site or policy details still awaiting confirmation.
 
 ## Prompt for the website chat
 
-> In my `thongkhong.me` website project, build and publish the Thong Khong Toolbox pages using this [website and Google OAuth handoff](https://github.com/thongteevee/thong-khong-toolbox/blob/main/docs/website-handoff.md). Follow the existing site's stack and styling. Use the GitHub Releases EXE link, add the privacy and terms pages, and verify that all three URLs and the download work while signed out. Use the documented data practices to draft the policy and confirm any missing owner or hosting details before publishing it.
+> In my `thongkhong.me` website project, build and publish the Thong Khong Toolbox pages using this [website and Google OAuth handoff](https://github.com/thongteevee/thong-khong-toolbox/blob/main/docs/website-handoff.md). Follow the existing site's stack and styling. Use the GitHub Releases links for both Windows downloads, add the privacy and terms pages, and verify that all three URLs and both downloads work while signed out. Use the desktop policy and agreement as source copy and confirm any missing owner or hosting details before publishing.

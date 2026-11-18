@@ -2,13 +2,18 @@
 
 Thong Khong Toolbox is a Windows desktop hub built in C# and WPF. Its first tool, **Sling Shift Auto Apply**, compares open Sling shifts with your Google Calendar and submits applications for the shifts you select.
 
-**[Download ThongKhongToolbox.exe](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolbox.exe)** · [Release notes and checksum](https://github.com/thongteevee/thong-khong-toolbox/releases/latest)
+**[Download Windows installer](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolboxSetup.exe)** · **[Download portable EXE](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolbox.exe)** · [Release notes and checksums](https://github.com/thongteevee/thong-khong-toolbox/releases/latest)
 
 ## Run it on Windows
 
-1. Download `ThongKhongToolbox.exe` from the latest GitHub release.
-2. Run the EXE on Windows with .NET Framework 4.8 or later. The download is a portable executable.
-3. Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable **Demo mode** under **Sling → Rules**, then choose **Preview matches**. Demo applications are simulated.
+Both downloads run on Windows with .NET Framework 4.8 or later.
+
+- **Windows installer.** Run `ThongKhongToolboxSetup.exe`, accept the [User Agreement](installer/UserAgreement.txt), and review the [Privacy Policy](installer/PrivacyPolicy.txt). Setup installs for your Windows user and adds a Start menu shortcut. You can remove it from **Windows Settings → Apps**.
+- **Portable EXE.** Run `ThongKhongToolbox.exe` directly from the folder where you saved it.
+
+Both editions use the same local connections and preferences within your Windows profile. Uninstalling keeps that data. See the [Privacy Policy](installer/PrivacyPolicy.txt) for revocation and local deletion steps.
+
+Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable **Demo mode** under **Sling → Rules**, then choose **Preview matches**. Demo applications are simulated.
 
 ## Set up live mode
 
@@ -49,12 +54,19 @@ From the repository root, run the following in PowerShell on Windows with the .N
 
 The executable is written to `dist\ThongKhongToolbox.exe`. Use `-OutputDirectory` to choose a different build folder.
 
+To build both release packages and their SHA-256 checksums, install [Inno Setup](https://jrsoftware.org/inno-setup/downloads) and run the release build. It writes to `dist\v0.1.1` with the version shown below. If your compiler is installed elsewhere, pass its `ISCC.exe` path with `-InnoCompiler`.
+
+```powershell
+.\Build-Release.ps1 -Version 0.1.1
+```
+
 | Folder | Contents |
 |---|---|
 | `src/Hub` | WPF window, navigation, settings, and shared account connections |
 | `src/Features/Sling` | Schedule matching, submissions, calendar, and checklist |
 | `src/Integrations/GoogleCalendar` | Google sign-in and Calendar requests |
 | `src/Common` | HTTP transport and encrypted local storage |
+| `installer` | Windows setup, User Agreement, and Privacy Policy |
 
 For a personal build with a preconfigured Google OAuth client, set `TOOLBOX_GOOGLE_CLIENT_ID` and `TOOLBOX_GOOGLE_CLIENT_SECRET` in the build environment. GitHub release builds let each user enter their own OAuth client details in Settings.
 

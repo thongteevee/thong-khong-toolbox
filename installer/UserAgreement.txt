@@ -1,0 +1,32 @@
+THONG KHONG TOOLBOX USER AGREEMENT
+Effective November 17, 2026
+
+1. Agreement and scope
+
+This agreement covers the Thong Khong Toolbox Windows desktop app, including Sling Shift Auto Apply. By selecting "I accept the agreement" and continuing in Setup, you agree to these terms. If you decline, exit Setup. Review the separate Privacy Policy for information about accounts, data, and local storage.
+
+2. Accounts and permission to use the app
+
+Use Toolbox only with accounts and schedules you are authorized to access. Follow the rules of your employer or organization and the terms of the services you connect. Keep your Windows account, Google credentials, and Sling session token secure. If you use a shared device, protect access to your Windows profile.
+
+3. Previewing and submitting applications
+
+Demo mode uses sample data and simulates submissions. In live mode, Preview matches compares open Sling shifts with selected calendars and applicable rules. Review the week, calendar choices, and checked shifts before applying. Selecting a shift that needs confirmation approves the displayed exception for that shift.
+
+Choosing Auto apply authorizes Toolbox to submit applications for the selected shifts to Sling. Check the reported outcomes and confirm questionable or uncertain results in Sling before retrying. Shift availability, calendar events, and assignments can change between preview and submission. Sling and your supervisor determine approval and assignments. Confirm your work schedule with Sling or your supervisor.
+
+4. Third-party services
+
+Google and Sling operate independently and govern their own services. Calendar availability depends on the calendars and events you choose, permissions you grant, and data those services return. Service outages, account restrictions, expired sessions, or API changes can interrupt Toolbox features. Use the original service to verify outcomes or manage applications after submission.
+
+5. Discontinuing use and uninstalling
+
+You can stop using Toolbox, disconnect its saved accounts, or remove the installed app through Windows Settings. The uninstall leaves the Toolbox data folder in your Windows profile so you can use it again after reinstalling or in the portable EXE. The Privacy Policy explains how to remove that folder and revoke access at Google. Removing Toolbox or disconnecting an account does not cancel any applications already sent to Sling.
+
+6. Updates and support
+
+See GitHub Releases for available versions and consult the agreement and privacy policy supplied with the version you install. Report general problems through the Toolbox repository's issue tracker. The tracker is public. Keep credentials, private schedules, and account identifiers out of reports.
+
+Project and support
+https://github.com/thongteevee/thong-khong-toolbox
+https://github.com/thongteevee/thong-khong-toolbox/issues

@@ -1,0 +1,50 @@
+THONG KHONG TOOLBOX PRIVACY POLICY
+Effective November 17, 2026
+
+1. Scope
+
+This policy describes what the Thong Khong Toolbox Windows app accesses, why it uses the information, where it keeps it, and how to remove it. It applies to the installed and portable versions. Demo mode uses sample data and does not submit applications to Sling.
+
+2. Google Calendar
+
+If you choose Connect Google, the app opens Google's OAuth consent screen in your browser. The app uses a local callback and PKCE. Enter your Google password only on Google's sign-in page. Toolbox uses two read-only permissions.
+
+  * calendar.calendarlist.readonly lets Toolbox read calendar names, identifiers, and access information to show a calendar picker.
+  * calendar.events.readonly lets Toolbox read events from selected calendars. It reads event titles, times, status, busy/free settings, and your attendance response to display the schedule, detect overlaps, and evaluate any exceptions you configure.
+
+Fetched calendar events are processed in memory. Selected calendar identifiers and calendar-matching rules can remain in local settings. Identifiers can contain email addresses. The app does not create, change, or delete Google Calendar events.
+
+3. Sling
+
+Toolbox uses your Sling session to read account, schedule, and shift information and submit the applications you select. If you use password sign-in, Toolbox sends the email and password to Sling to establish a session and does not save your password to disk. You can also supply an existing Sling session token.
+
+Toolbox sends Sling account and shift information directly to Sling. Google Calendar event contents are not sent to Sling. Sling's own policies apply to the data it receives and the applications it retains.
+
+4. Storage on your Windows device
+
+Toolbox saves the Google client configuration and refresh token and the Sling session and account details under %LOCALAPPDATA%\ThongKhongToolbox\accounts.dpapi. Windows Data Protection API encrypts this file for your Windows user. Google access tokens are used in memory.
+
+The same folder contains Sling\settings.json and Sling\applications.json. These local JSON files store preferences and calendar filters, and record Sling shift information and application outcomes to track submissions and avoid duplicates. The JSON files are outside the encrypted credential vault. The portable and installed versions use the same data folder within a Windows profile.
+
+5. Sharing and service providers
+
+Toolbox communicates with Google and Sling to provide the features described here. It does not send your calendar contents or saved credentials to a Toolbox server. Toolbox uses Google user data for the user-facing calendar and shift-matching features. It does not sell the data, use it for advertising, or provide it to advertisers. Its use of Google user data follows the Limited Use requirements in the Google API Services User Data Policy.
+
+Google API Services User Data Policy
+https://developers.google.com/terms/api-services-user-data-policy
+
+GitHub hosts downloads and the public support tracker. Information you choose to post there is handled by GitHub. Keep private information out of public reports.
+
+6. Retention, revocation, and deletion
+
+Toolbox keeps local preferences and application history until you remove them. The uninstall does not remove the local data folder.
+
+  * Select Disconnect Google in Toolbox Settings to clear the active refresh token locally. The desktop client configuration and saved preferences remain. To revoke the grant at Google, remove the connection at https://myaccount.google.com/connections.
+  * Select Disconnect Sling in Toolbox Settings to remove the saved Sling session from Toolbox. Existing applications remain in Sling.
+  * To erase all Toolbox data for your Windows profile, close the app and remove %LOCALAPPDATA%\ThongKhongToolbox. This removes connections, preferences, and application history stored on that device, including any older migrated credential files. It does not remove your data from Google or Sling.
+
+7. Privacy questions
+
+Use the Toolbox issue tracker for general privacy questions. It is public, so omit calendar details, account identifiers, and credentials.
+
+https://github.com/thongteevee/thong-khong-toolbox/issues
