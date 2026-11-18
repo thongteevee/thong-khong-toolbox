@@ -15,9 +15,9 @@ namespace Toolbox
         private static readonly Brush Muted = Brush("#52647D");
         private static readonly Brush GridLine = Brush("#E0E8F3");
         private static readonly Brush Heading = Brush("#F0F4FA");
-        private static readonly string[] CategoryLabels = { "Calendar events", "Booked shifts", "Available shifts", "Needs confirmation" };
-        private static readonly Brush[] Fills = { Brush("#E3EDFE"), Brush("#F0E7FA"), Brush("#E2F4EA"), Brush("#FFF0CF") };
-        private static readonly Brush[] Colors = { Brush("#24539B"), Brush("#6A3D97"), Brush("#16654B"), Brush("#784C14") };
+        private static readonly string[] CategoryLabels = { "Calendar events", "Booked shifts", "Available shifts", "Applied", "Needs confirmation" };
+        private static readonly Brush[] Fills = { Brush("#E3EDFE"), Brush("#F0E7FA"), Brush("#E2F4EA"), Brush("#DDF2F4"), Brush("#FFF0CF") };
+        private static readonly Brush[] Colors = { Brush("#24539B"), Brush("#6A3D97"), Brush("#16654B"), Brush("#17606A"), Brush("#784C14") };
         private const double HourHeight = 36;
         private const double MinimumCalendarWidth = 950;
         private readonly ContentControl host;
@@ -58,7 +58,7 @@ namespace Toolbox
         {
             var from = Planner.At(monday, TimeSpan.Zero);
             var until = Planner.At(monday.AddDays(7), TimeSpan.Zero);
-            var entries = report == null ? new List<Slot>() : report.Calendar.Where(slot => slot.Kind != "Pending").Concat(report.Shifts.Where(shift => shift.Kind == "Available" &&
+            var entries = report == null ? new List<Slot>() : report.Calendar.Concat(report.Shifts.Where(shift => shift.Kind == "Available" &&
                 (!results || report.Results.Any(row => (row.Status == "Eligible" || row.Status == "Needs confirmation") && ReferenceEquals(row.Shift, shift))) &&
                 !report.Calendar.Any(slot => (slot.Kind == "Pending" && Planner.SameOffer(shift, slot)) ||
                     (slot.Kind == "Booked" && (Planner.SameOffer(shift, slot) || Planner.SameShift(shift, slot))))))
@@ -94,7 +94,8 @@ namespace Toolbox
                     detail.Margin = new Thickness(0, 3, 0, 0);
                     content.Children.Add(detail);
                     var decision = DecisionFor(report, slot);
-                    if (decision != null) content.Children.Add(Text(decision.Status + " · " + decision.Reason, 13, Muted));
+                    if (decision != null) content.Children.Add(Text(slot.Kind == "Pending" ? decision.Reason :
+                        decision.Status + " · " + decision.Reason, 13, Muted));
                     stack.Children.Add(new Border { Child = content, Padding = new Thickness(9, 7, 9, 7), Margin = new Thickness(0, 0, 0, 6),
                         BorderThickness = new Thickness(3, 0, 0, 0), BorderBrush = Colors[kind], Background = Fills[kind], CornerRadius = new CornerRadius(5) });
                 }
@@ -212,7 +213,7 @@ namespace Toolbox
         private static Button SlotButton(Slot slot, RunReport report, Action<Slot> select, double? height = null)
         {
             var decision = DecisionFor(report, slot);
-            var category = decision != null && decision.Status == "Needs confirmation" ? 3 : Category(slot);
+            var category = decision != null && decision.Status == "Needs confirmation" ? 4 : Category(slot);
             var body = new StackPanel();
             var name = Text(slot.Name, 12, Colors[category], true);
             if (height.HasValue)
@@ -226,7 +227,7 @@ namespace Toolbox
             body.Children.Add(name);
             if (height >= 39)
             {
-                var caption = decision == null ? Planner.Local(slot.Start).ToString("h:mm tt") :
+                var caption = slot.Kind == "Pending" ? "Applied" : decision == null ? Planner.Local(slot.Start).ToString("h:mm tt") :
                     decision.Status == "Eligible" ? "Can apply" : decision.Status;
                 var time = Text(caption, 11, Colors[category]);
                 time.TextWrapping = TextWrapping.NoWrap;
@@ -252,13 +253,18 @@ namespace Toolbox
             var lines = new List<string> { slot.Name, time };
             if (!String.IsNullOrWhiteSpace(slot.PositionName)) lines.Add("Role · " + slot.PositionName);
             if (!String.IsNullOrWhiteSpace(slot.LocationName)) lines.Add("Location · " + slot.LocationName);
-            lines.Add(decision == null ? KindLabel(slot) : decision.Status == "Eligible" ? "Can apply" : decision.Status);
+            lines.Add(slot.Kind == "Pending" || decision == null ? KindLabel(slot) : decision.Status == "Eligible" ? "Can apply" : decision.Status);
             if (decision != null) lines.Add(decision.Reason);
             if (!String.IsNullOrWhiteSpace(slot.Notes) && slot.Notes != slot.Name) lines.Add("Sling note · " + slot.Notes);
             return String.Join("\n", lines);
         }
 
-        private static Decision DecisionFor(RunReport report, Slot slot) { return report.Results.FirstOrDefault(row => row.Status != "Pending approval" && (ReferenceEquals(row.Shift, slot) || Planner.SameOffer(row.Shift, slot))); }
+        private static Decision DecisionFor(RunReport report, Slot slot)
+        {
+            if (slot.Kind == "Booked") return null;
+            return report.Results.FirstOrDefault(row => (slot.Kind != "Pending" || row.IsApplied) &&
+                (ReferenceEquals(row.Shift, slot) || Planner.SameOffer(row.Shift, slot)));
+        }
 
         private static IEnumerable<Slot> Day(List<Slot> entries, DateTime date)
         {
@@ -269,9 +275,9 @@ namespace Toolbox
 
         private static bool IsAllDay(Slot slot) { return slot.Kind == "All day" || slot.Kind == "Sling closure"; }
 
-        private static int Category(Slot slot) { return slot.Kind == "Booked" ? 1 : slot.Kind == "Available" ? 2 : 0; }
+        private static int Category(Slot slot) { return slot.Kind == "Booked" ? 1 : slot.Kind == "Available" ? 2 : slot.Kind == "Pending" ? 3 : 0; }
 
-        private static string KindLabel(Slot slot) { return slot.Kind == "Sling closure" ? "Sling closure" : new[] { "Calendar event", "Booked shift", "Available shift" }[Category(slot)]; }
+        private static string KindLabel(Slot slot) { return slot.Kind == "Sling closure" ? "Sling closure" : new[] { "Calendar event", "Booked shift", "Available shift", "Applied" }[Category(slot)]; }
 
         private static TextBlock Text(string value, double size, Brush color, bool heading = false)
         {

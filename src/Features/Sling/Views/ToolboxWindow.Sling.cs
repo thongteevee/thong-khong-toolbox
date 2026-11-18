@@ -151,7 +151,7 @@ namespace Toolbox
             var monday = visibleMonday;
             await Operation("Loading the weekly schedule…", async delegate
             {
-                weekReport = await ShiftRunner.ReadWeek(settings, accounts, monday);
+                weekReport = await ShiftRunner.ReadWeek(settings, accounts, monday, demoJournal);
                 loadedMonday = monday;
                 UpdateWeek();
                 SetStatus("Weekly schedule loaded.");
@@ -225,11 +225,17 @@ namespace Toolbox
         private void ShowResults(bool submit)
         {
             var visibleResults = report.Results.Where(row => row.Status == "Eligible" || row.Status == "Needs confirmation" ||
-                row.Status == "Check Sling" || submit && new[] { "Submitted", "Assigned", "Declined", "Not sent", "No longer available" }
+                row.Status == "Check Sling" || submit && new[] { "Assigned", "Declined", "Not sent", "No longer available" }
                     .Contains(row.Status)).ToList();
             var summary = new List<string> { settings.Demo ? "Demo" : submit ? "Auto apply" : "Preview" };
             if (submit) summary.Add(report.ApplicationsSent + " sent");
             else summary.Add(visibleResults.Count + " offers");
+            var start = Planner.At(report.Monday, TimeSpan.Zero);
+            var applied = report.Calendar.Where(slot => slot.Kind == "Pending" && slot.Start < report.Through && slot.End > start)
+                .Select(slot => report.Results.FirstOrDefault(row => row.IsApplied && Planner.SameOffer(row.Shift, slot)) ??
+                    new Decision(slot, "Already submitted", "An application is recorded for this shift.")).ToList();
+            visibleResults.AddRange(applied);
+            if (applied.Count > 0) summary.Add(applied.Count + " applied");
             foreach (var pair in new[] { new[] { "Eligible", "eligible" }, new[] { "Assigned", "assigned" },
                 new[] { "Declined", "declined" }, new[] { "Not sent", "not sent" }, new[] { "No longer available", "no longer available" } })
             {
@@ -245,7 +251,7 @@ namespace Toolbox
             Get<TextBlock>("ResultSummary").Text = summaryText;
             resultItems = visibleResults
                 .Select(row => new ResultItem(row, !submit, UpdateApplyState))
-                .OrderBy(item => item.Status == "Can apply" ? 0 : item.Status == "Needs confirmation" ? 1 : 2)
+                .OrderBy(item => item.Status == "Can apply" ? 0 : item.Status == "Needs confirmation" ? 1 : item.Status == "Applied" ? 3 : 2)
                 .ThenBy(item => item.Shift.Start).ToList();
             if (resultItems.Count == 0) resultItems.Add(new ResultItem(null, false, UpdateApplyState));
             Get<ItemsControl>("ResultList").ItemsSource = resultItems;

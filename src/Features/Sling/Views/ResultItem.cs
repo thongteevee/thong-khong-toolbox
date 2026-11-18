@@ -41,7 +41,8 @@ namespace Toolbox
             Decision = decision;
             CanApply = decision != null && (decision.Status == "Eligible" || decision.Status == "Needs confirmation");
             isChecked = preview && decision != null && decision.Status == "Eligible";
-            Status = decision == null ? "No shifts" : decision.Status == "Eligible" ? "Can apply" : decision.Status;
+            Status = decision == null ? "No shifts" : decision.IsApplied ? "Applied" :
+                decision.Status == "Eligible" ? "Can apply" : decision.Status;
             Reason = decision == null ? "There are no shifts to show for the selected week." : decision.Reason;
             if (Status == "Needs confirmation") Reason += " Select to confirm for this shift.";
             if (decision != null)
@@ -49,10 +50,10 @@ namespace Toolbox
                 Name = decision.Shift.Name;
                 Schedule = Planner.Local(decision.Shift.Start).ToString("ddd, MMM d") + " · " + WeekTimeline.TimeRange(decision.Shift) + " ET";
             }
-            var positive = new[] { "Submitted", "Assigned", "Can apply" }.Contains(Status);
+            var positive = Status == "Assigned" || Status == "Can apply";
             var review = new[] { "Needs confirmation", "Check Sling", "Declined", "Not sent" }.Contains(Status);
-            StatusForeground = WeekTimeline.Brush(positive ? "#145B44" : review ? "#784C14" : "#455771");
-            StatusBackground = WeekTimeline.Brush(positive ? "#E2F4EB" : review ? "#FFF0CF" : "#EAF0F7");
+            StatusForeground = WeekTimeline.Brush(Status == "Applied" ? "#17606A" : positive ? "#145B44" : review ? "#784C14" : "#455771");
+            StatusBackground = WeekTimeline.Brush(Status == "Applied" ? "#DDF2F4" : positive ? "#E2F4EB" : review ? "#FFF0CF" : "#EAF0F7");
         }
     }
 }

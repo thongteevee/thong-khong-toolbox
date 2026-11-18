@@ -46,7 +46,7 @@ Toolbox uses the Sling password only to establish a session. Windows encrypts th
 2. **Results** shows the week's calendar and checklist. **Can apply** shifts start selected. **Needs confirmation** shifts start unchecked. Selecting one approves the listed class exception for that shift only.
 3. Click **Auto apply** to recheck and submit the selected shifts. Toolbox reports how many applications were sent and shows Sling errors for declined requests. Supervisors decide which shifts to assign.
 
-Pending applications stay out of the checklist and calendar. Toolbox tracks them to prevent duplicate submissions. Calendar commitments and assigned shifts can block an application. See the [Sling tool guide](auto-sling-shift-apply/README.md) for the sample schedule and run behavior.
+Submitted applications appear as **Applied** on the calendar and as read-only rows in Results. Once Sling assigns the shift, the calendar shows it as booked. Toolbox tracks applications to prevent duplicate submissions. Calendar commitments and assigned shifts can block an application. See the [Sling tool guide](auto-sling-shift-apply/README.md) for the sample schedule and run behavior.
 
 ## Build from source
 

@@ -61,6 +61,7 @@ namespace Toolbox
         public Slot Shift;
         public string Status;
         public string Reason;
+        internal bool IsApplied { get { return Status == "Submitted" || Status == "Already submitted" || Status == "Pending approval"; } }
         public Decision(Slot shift, string status, string reason)
         {
             Shift = shift;

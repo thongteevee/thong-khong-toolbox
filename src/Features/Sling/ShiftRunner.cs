@@ -8,9 +8,14 @@ namespace Toolbox
 {
     internal static class ShiftRunner
     {
-        internal static async Task<RunReport> ReadWeek(Settings settings, HubAccounts accounts, DateTime monday)
+        internal static async Task<RunReport> ReadWeek(Settings settings, HubAccounts accounts, DateTime monday, List<Entry> demoJournal)
         {
-            if (settings.Demo) return Sample();
+            if (settings.Demo)
+            {
+                var sample = Sample();
+                AddAppliedShifts(sample, demoJournal.Where(entry => entry.State == "Submitted").Select(entry => entry.Shift));
+                return sample;
+            }
             var account = accounts.Sling;
             var google = accounts.Google;
             var from = Planner.At(monday, TimeSpan.Zero);
@@ -33,6 +38,11 @@ namespace Toolbox
             report.Calendar.AddRange(await events);
             report.Calendar.AddRange(await schedule);
             report.Shifts.AddRange(await shifts);
+            var journal = LocalData.Load("applications", new List<Entry>());
+            var previous = journal.Where(entry => entry.Account == sling.Key && entry.State == "Submitted" &&
+                entry.Shift.Start < until && entry.Shift.End > from).ToList();
+            await RecheckPriorApplications(report, sling.Key, previous, sling.CheckApplication);
+            AddAppliedShifts(report, previous.Where(entry => entry.State == "Submitted").Select(entry => entry.Shift));
             return report;
         }
 
@@ -108,6 +118,7 @@ namespace Toolbox
                     report.Calendar.RemoveAll(item => item.Kind != "Calendar" && item.Kind != "All day" &&
                         (item.Kind != "Pending" || fresh.Any(slot => Planner.SameShift(slot, item) || Planner.SameOffer(slot, item))));
                     report.Calendar.AddRange(fresh);
+                    AddAppliedShifts(report);
                 }
                 catch (Exception)
                 {
@@ -205,14 +216,22 @@ namespace Toolbox
                 foreach (var item in selected.Where(item => !report.Shifts.Any(shift => SameSelection(item, shift))))
                     report.Results.Add(new Decision(item, "No longer available", "The shift disappeared or its time changed after preview."));
 
-            var pending = report.Shifts.Where(item => item.Kind == "Pending").Concat(previous.Select(entry => entry.Shift));
+            AddAppliedShifts(report, previous.Where(entry => entry.State == "Submitted").Select(entry => entry.Shift));
+        }
+
+        private static void AddAppliedShifts(RunReport report, IEnumerable<Slot> submitted = null)
+        {
+            var pending = report.Calendar.Concat(report.Shifts).Where(item => item.Kind == "Pending")
+                .Concat(submitted ?? Enumerable.Empty<Slot>()).ToList();
+            report.Calendar.RemoveAll(item => item.Kind == "Pending");
             foreach (var slot in pending)
             {
-                if (report.Calendar.Any(item => (item.Kind == "Pending" && Planner.SameOffer(item, slot)) ||
-                    (item.Kind == "Booked" && Planner.SameShift(item, slot)))) continue;
+                if (report.Calendar.Any(item => (item.Kind == "Pending" && (ReferenceEquals(item, slot) || Planner.SameOffer(item, slot))) ||
+                    (item.Kind == "Booked" && (Planner.SameShift(item, slot) || Planner.SameOffer(item, slot))))) continue;
 
                 var current = report.Shifts.FirstOrDefault(shift => Planner.SameOffer(shift, slot));
-                report.Calendar.Add(Pending(current ?? slot));
+                var applied = current ?? slot;
+                report.Calendar.Add(applied.Kind == "Pending" ? applied : Pending(applied));
             }
         }
 
