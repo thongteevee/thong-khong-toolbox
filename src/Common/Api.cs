@@ -13,12 +13,13 @@ namespace Toolbox
         { Timeout = TimeSpan.FromSeconds(25) };
 
         internal static async Task<HttpResponseMessage> Send(string url, HttpMethod method, string token, HttpContent body = null,
-            bool? expectContinue = null)
+            bool? expectContinue = null, string userAgent = null)
         {
             using (var request = new HttpRequestMessage(method, url))
             {
                 request.Headers.TryAddWithoutValidation("Accept", "application/json");
                 if (!String.IsNullOrEmpty(token)) request.Headers.TryAddWithoutValidation("Authorization", token);
+                if (userAgent != null) request.Headers.UserAgent.ParseAdd(userAgent);
                 request.Content = body;
                 if (expectContinue.HasValue) request.Headers.ExpectContinue = expectContinue;
                 return await Http.SendAsync(request).ConfigureAwait(false);

@@ -1,4 +1,8 @@
-param([string]$OutputDirectory)
+param(
+    [string]$OutputDirectory,
+    [ValidatePattern('^\d+\.\d+\.\d+$')]
+    [string]$Version = '0.0.0'
+)
 
 $ErrorActionPreference = 'Stop'
 $project = $PSScriptRoot
@@ -29,7 +33,13 @@ if ([string]::IsNullOrWhiteSpace($clientId) -ne [string]::IsNullOrWhiteSpace($cl
 }
 $resources = @("/resource:$layout,Toolbox.xaml")
 $oauthResource = $null
+$versionSource = [IO.Path]::GetTempFileName()
 try {
+    Set-Content -LiteralPath $versionSource -Encoding ascii -Value @(
+        "[assembly: System.Reflection.AssemblyVersionAttribute(`"$Version.0`")]"
+        "[assembly: System.Reflection.AssemblyFileVersionAttribute(`"$Version.0`")]"
+        "[assembly: System.Reflection.AssemblyInformationalVersionAttribute(`"$Version`")]"
+    )
     if (-not [string]::IsNullOrWhiteSpace($clientId)) {
         $clientId = $clientId.Trim()
         $clientSecret = $clientSecret.Trim()
@@ -40,9 +50,10 @@ try {
         @{ ClientId = $clientId; ClientSecret = $clientSecret } | ConvertTo-Json -Compress | Set-Content -LiteralPath $oauthResource -Encoding utf8
         $resources += "/resource:$oauthResource,GoogleOAuthClient,private"
     }
-    & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 "/win32manifest:$manifest" "/out:$file" $resources $references $sources
+    & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 "/win32manifest:$manifest" "/out:$file" $resources $references $sources $versionSource
     if ($LASTEXITCODE -ne 0) { throw "Build failed with code $LASTEXITCODE" }
 } finally {
+    Remove-Item -LiteralPath $versionSource -ErrorAction SilentlyContinue
     if ($null -ne $oauthResource) { Remove-Item -LiteralPath $oauthResource -ErrorAction SilentlyContinue }
 }
 Get-Item -LiteralPath $file

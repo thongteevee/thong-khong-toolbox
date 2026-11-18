@@ -15,6 +15,10 @@ Both editions use the same local connections and preferences within your Windows
 
 Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable **Demo mode** under **Sling → Rules**, then choose **Preview matches**. Demo applications are simulated.
 
+## Check for updates
+
+Open **Toolbox Settings → Updates** to see your current version and check for the latest stable GitHub release. When a newer version is available, **View release downloads** opens the release page in your browser. Run the new installer to upgrade an installed copy, or close Toolbox and replace the portable EXE.
+
 ## Set up live mode
 
 ### Connect Google Calendar
@@ -54,10 +58,10 @@ From the repository root, run the following in PowerShell on Windows with the .N
 
 The executable is written to `dist\ThongKhongToolbox.exe`. Use `-OutputDirectory` to choose a different build folder.
 
-To build both release packages and their SHA-256 checksums, install [Inno Setup](https://jrsoftware.org/inno-setup/downloads) and run the release build. It writes to `dist\v0.1.1` with the version shown below. If your compiler is installed elsewhere, pass its `ISCC.exe` path with `-InnoCompiler`.
+To build both release packages and their SHA-256 checksums, install [Inno Setup](https://jrsoftware.org/inno-setup/downloads) and run the release build. It embeds the version in the app and installer and writes to `dist\v0.1.2` with the version shown below. Publish it under the matching tag `v0.1.2` so the update checker can compare versions. If your compiler is installed elsewhere, pass its `ISCC.exe` path with `-InnoCompiler`.
 
 ```powershell
-.\Build-Release.ps1 -Version 0.1.1
+.\Build-Release.ps1 -Version 0.1.2
 ```
 
 | Folder | Contents |

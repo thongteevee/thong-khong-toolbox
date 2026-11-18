@@ -28,7 +28,7 @@ if (-not $InnoCompiler -or -not (Test-Path -LiteralPath $InnoCompiler -PathType 
 }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot "dist\v$Version" }
 $output = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
-$portable = & (Join-Path $PSScriptRoot 'Build.ps1') -OutputDirectory $output
+$portable = & (Join-Path $PSScriptRoot 'Build.ps1') -OutputDirectory $output -Version $Version
 
 $script = Join-Path $PSScriptRoot 'installer\Toolbox.iss'
 & $InnoCompiler "/DToolboxVersion=$Version" "/DToolboxExe=$($portable.FullName)" "/O$output" $script | Out-Host

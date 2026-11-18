@@ -511,6 +511,17 @@
             </WrapPanel>
           </StackPanel>
         </Border>
+        <Border Style="{StaticResource Surface}" Padding="15" Margin="0,0,0,12">
+          <StackPanel>
+            <TextBlock Text="Updates" Style="{StaticResource SectionTitle}"/>
+            <TextBlock x:Name="ToolboxVersion" Style="{StaticResource Caption}" Margin="0,0,0,9"/>
+            <WrapPanel>
+              <Button x:Name="CheckForUpdates" Content="Check for updates" Margin="0,0,8,5"/>
+              <Button x:Name="OpenLatestRelease" Content="View release downloads" Margin="0,0,0,5" Visibility="Collapsed"/>
+            </WrapPanel>
+            <TextBlock x:Name="UpdateCheckStatus" Style="{StaticResource Caption}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+          </StackPanel>
+        </Border>
       </StackPanel>
     </ScrollViewer>
   </Grid>
