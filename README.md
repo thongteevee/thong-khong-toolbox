@@ -17,7 +17,7 @@ Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable 
 
 ## Check for updates
 
-Open **Toolbox Settings → Updates** to see your current version and check for the latest stable GitHub release. When a newer version is available, **View release downloads** opens the release page in your browser. Run the new installer to upgrade an installed copy, or close Toolbox and replace the portable EXE.
+Open **Toolbox Settings → Updates** to see your current version and check for the latest stable GitHub release. When a newer version is available, choose **Update now** to download the release, verify its SHA-256 checksum, and restart into the updated app. Installed copies upgrade through Windows Setup. Portable copies replace the running EXE and retain a backup alongside it. Settings and account connections are stored separately. **View release downloads** also opens the release page in your browser.
 
 ## Set up live mode
 

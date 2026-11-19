@@ -8,9 +8,15 @@ namespace Toolbox
     internal static class Program
     {
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            if (args.Length > 0 && args[0] == "--finish-update")
+            {
+                try { ToolboxUpdater.Finish(args); }
+                catch (Exception exception) { MessageBox.Show(exception.GetBaseException().Message, "Toolbox update", MessageBoxButton.OK, MessageBoxImage.Error); }
+                return;
+            }
             bool first;
             using (var instance = new Mutex(true, @"Local\ThongKhongToolbox.Sling", out first))
             {
