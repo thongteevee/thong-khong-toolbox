@@ -1,7 +1,9 @@
 # Toolbox logo
 
-`toolbox-logo.png` is the transparent master image. `toolbox.ico` contains PNG frames at 16, 24, 32, 48, 64, 128, and 256 pixels for Windows. Both Windows packages use the same icon.
+The TK monogram uses **Segoe UI Bold**, matching Toolbox's Windows typography. The navy square and blue tiles are vector shapes.
 
-Generated with the built-in imagegen tool using this prompt.
+- `toolbox-logo.svg` contains outlined font glyphs and shapes for consistent rendering at any size.
+- `toolbox-logo.png` is a 1024-pixel transparent export.
+- `toolbox.ico` contains separately rendered 16, 24, 32, 48, 64, 128, and 256-pixel frames.
 
-> Create one finished Windows desktop app icon for Thong Khong Toolbox. A bold, beautifully spaced white TK monogram, geometric clean letters, on a deep navy rounded square with a subtle royal-blue lower-right accent suggesting a small set of modular app tiles. Match a professional personal productivity WPF app with navy #17263E and royal blue #2256B4. Flat precise graphic design, extremely clear silhouette at 24px, thick letter strokes, generous internal padding, very minimal, front-facing, no mockup, no 3D, no shadow, no extra text, no trademark marks, one centered icon filling 90 percent of the square image. Transparent outside the rounded square. Output a single high-resolution square logo.
+Run `powershell -NoProfile -STA -File assets/Build-Logo.ps1` on Windows to rebuild using the installed Segoe UI font and WPF vector rendering.
