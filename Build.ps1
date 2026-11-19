@@ -26,12 +26,13 @@ $sources = Get-ChildItem -LiteralPath $sourceRoot -Filter '*.cs' -File -Recurse 
 $file = Join-Path $output 'ThongKhongToolbox.exe'
 $manifest = Join-Path $sourceRoot 'Hub\app.manifest'
 $layout = Join-Path $sourceRoot 'Hub\Toolbox.xaml'
+$icon = Join-Path $project 'assets\toolbox.ico'
 $clientId = $env:TOOLBOX_GOOGLE_CLIENT_ID
 $clientSecret = $env:TOOLBOX_GOOGLE_CLIENT_SECRET
 if ([string]::IsNullOrWhiteSpace($clientId) -ne [string]::IsNullOrWhiteSpace($clientSecret)) {
     throw 'Set both Toolbox Google client environment variables or leave both empty.'
 }
-$resources = @("/resource:$layout,Toolbox.xaml")
+$resources = @("/resource:$layout,Toolbox.xaml", "/resource:$icon,Toolbox.ico")
 $oauthResource = $null
 $versionSource = [IO.Path]::GetTempFileName()
 try {
@@ -50,7 +51,7 @@ try {
         @{ ClientId = $clientId; ClientSecret = $clientSecret } | ConvertTo-Json -Compress | Set-Content -LiteralPath $oauthResource -Encoding utf8
         $resources += "/resource:$oauthResource,GoogleOAuthClient,private"
     }
-    & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 "/win32manifest:$manifest" "/out:$file" $resources $references $sources $versionSource
+    & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 "/win32manifest:$manifest" "/win32icon:$icon" "/out:$file" $resources $references $sources $versionSource
     if ($LASTEXITCODE -ne 0) { throw "Build failed with code $LASTEXITCODE" }
 } finally {
     Remove-Item -LiteralPath $versionSource -ErrorAction SilentlyContinue

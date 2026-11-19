@@ -13,6 +13,7 @@ DisableWelcomePage=no
 PrivilegesRequired=lowest
 OutputBaseFilename=ThongKhongToolboxSetup
 WizardStyle=modern
+SetupIconFile=..\assets\toolbox.ico
 LicenseFile=UserAgreement.txt
 InfoBeforeFile=PrivacyPolicy.txt
 UninstallDisplayIcon={app}\ThongKhongToolbox.exe

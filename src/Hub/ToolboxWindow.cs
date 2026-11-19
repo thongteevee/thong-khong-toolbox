@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 
 namespace Toolbox
@@ -33,6 +34,8 @@ namespace Toolbox
             }
             rules = new ObservableCollection<Rule>(settings.Rules);
             Title = "Thong Khong Toolbox";
+            using (var icon = Assembly.GetExecutingAssembly().GetManifestResourceStream("Toolbox.ico"))
+                Icon = BitmapFrame.Create(icon, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             var available = SystemParameters.WorkArea;
             Width = Math.Min(1160, available.Width * .94);
