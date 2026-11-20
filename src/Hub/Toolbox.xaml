@@ -314,7 +314,10 @@
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="760"/></Grid.ColumnDefinitions>
         <StackPanel Margin="0,22,8,12">
           <Border x:Name="MikuHomeBanner" Visibility="Collapsed" CornerRadius="14" Margin="0,0,0,20" ClipToBounds="True">
-            <Image x:Name="MikuHomePicture" Height="240" Stretch="UniformToFill" AutomationProperties.Name="Miku at a cherry blossom desk"/>
+            <StackPanel Background="{DynamicResource SurfaceFill}">
+              <Image x:Name="MikuHomePicture" Height="240" Stretch="Uniform" AutomationProperties.Name="Original Hatsune Miku illustration by KEI"/>
+              <Button x:Name="MikuHomeCredit" Content="Hatsune Miku © Crypton Future Media, Inc. 2007 · Art by KEI · CC BY-NC 3.0" FontSize="11" Padding="8,5" Margin="6" ToolTip="Open the artwork source and license"/>
+            </StackPanel>
           </Border>
           <Grid x:Name="AppsHeader" Margin="0,0,0,12">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -376,7 +379,9 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Image x:Name="MikuHomeStickers" Height="130" Stretch="Uniform" HorizontalAlignment="Left" Visibility="Collapsed" Margin="0,8,0,4" AutomationProperties.Name="Three cheerful Miku stickers"/>
+          <Border x:Name="MikuHomeStickers" HorizontalAlignment="Left" Visibility="Collapsed" Margin="0,8,0,4" Padding="14,6">
+            <TextBlock Text="♪  ♡  ✿" FontFamily="Segoe UI Symbol" FontSize="42" Foreground="{DynamicResource Accent}" AutomationProperties.Name="Music, heart, and flower decorations"/>
+          </Border>
           <Border Style="{StaticResource Surface}" Padding="16" Margin="0,12,0,0"
                   MaxWidth="350" HorizontalAlignment="Left">
             <StackPanel>
@@ -493,10 +498,14 @@
           <StackPanel>
             <TextBlock Text="Miku theme" Style="{StaticResource SectionTitle}"/>
             <CheckBox x:Name="MikuPinkTheme" Content="Miku pink" Margin="0,4,0,10"/>
-            <CheckBox x:Name="MikuArtwork" Content="Show Miku pictures and stickers" Margin="0,0,0,10"/>
+            <CheckBox x:Name="MikuArtwork" Content="Show original Miku art and decorations" Margin="0,0,0,10"/>
             <WrapPanel x:Name="MikuArtworkPreview" Visibility="Collapsed">
-              <Image x:Name="MikuSettingsPicture" Width="250" Height="165" Stretch="UniformToFill" Margin="0,0,12,8" AutomationProperties.Name="Cherry blossom Miku artwork"/>
-              <Image x:Name="MikuSettingsStickers" Width="300" Height="165" Stretch="Uniform" Margin="0,0,0,8" AutomationProperties.Name="Miku sticker collection"/>
+              <Image x:Name="MikuSettingsPicture" Width="200" Height="200" Stretch="Uniform" Margin="0,0,12,8" AutomationProperties.Name="Original Hatsune Miku illustration by KEI"/>
+              <StackPanel Width="280" VerticalAlignment="Center">
+                <TextBlock Text="♪  ♡  ✿" FontFamily="Segoe UI Symbol" FontSize="42" Foreground="{DynamicResource Accent}" Margin="0,0,0,12"/>
+                <TextBlock Text="Hatsune Miku © Crypton Future Media, Inc. 2007 · Art by KEI" Style="{StaticResource Caption}" Margin="0,0,0,8"/>
+                <Button x:Name="MikuSettingsCredit" Content="Artwork source · CC BY-NC 3.0" HorizontalAlignment="Left" FontSize="12"/>
+              </StackPanel>
             </WrapPanel>
           </StackPanel>
         </Border>

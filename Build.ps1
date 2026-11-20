@@ -33,9 +33,8 @@ if ([string]::IsNullOrWhiteSpace($clientId) -ne [string]::IsNullOrWhiteSpace($cl
     throw 'Set both Toolbox Google client environment variables or leave both empty.'
 }
 $resources = @("/resource:$layout,Toolbox.xaml", "/resource:$icon,Toolbox.ico")
-foreach ($picture in Get-ChildItem -LiteralPath (Join-Path $project 'assets\miku') -Filter '*.png' -File) {
-    $resources += "/resource:$($picture.FullName),Miku.$($picture.Name)"
-}
+$mikuPicture = Join-Path $project 'assets\miku\original-miku.jpg'
+$resources += "/resource:$mikuPicture,Miku.original-miku.jpg"
 $oauthResource = $null
 $versionSource = [IO.Path]::GetTempFileName()
 try {

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,10 +24,13 @@ namespace Toolbox
             var artwork = Get<CheckBox>("MikuArtwork");
             pink.IsChecked = appearance.MikuPink;
             artwork.IsChecked = appearance.Artwork;
-            LoadMikuPicture("MikuHomePicture", "desk.png");
-            LoadMikuPicture("MikuHomeStickers", "stickers.png");
-            LoadMikuPicture("MikuSettingsPicture", "desk.png");
-            LoadMikuPicture("MikuSettingsStickers", "stickers.png");
+            LoadMikuPicture("MikuHomePicture", "original-miku.jpg");
+            LoadMikuPicture("MikuSettingsPicture", "original-miku.jpg");
+            foreach (var name in new[] { "MikuHomeCredit", "MikuSettingsCredit" })
+                Get<Button>(name).Click += delegate
+                {
+                    Guard(delegate { Process.Start(new ProcessStartInfo("https://piapro.net/intl/en_for_creators.html") { UseShellExecute = true }); });
+                };
             RoutedEventHandler changed = delegate
             {
                 Guard(delegate

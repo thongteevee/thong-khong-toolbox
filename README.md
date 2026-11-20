@@ -17,7 +17,7 @@ Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable 
 
 ## Miku pink theme
 
-**Toolbox Settings → Miku theme** controls the pink palette and the character artwork. Pink styling and artwork start enabled. Turn off **Show Miku pictures and stickers** to use the colors on their own, or turn off **Miku pink** for the classic colors. The cherry blossom banner and three chibi stickers are bundled with the app and work offline. Your choices are saved for the next launch.
+**Toolbox Settings → Miku theme** controls the pink palette and original Miku artwork. The art is credited to KEI and Crypton Future Media under CC BY-NC 3.0, with source and license links in the app. Music, heart, and flower decorations use font glyphs. Your choices are saved for the next launch. See the [artist credits and permission request](docs/artist-permissions.md).
 
 ## Check for updates
 
