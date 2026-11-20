@@ -19,6 +19,7 @@ namespace Toolbox.Tests
             SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
             try
             {
+                NavigationChecks.Run();
                 var calls = 0;
                 var pending = new TaskCompletionSource<Version>();
                 var window = Create(token => { calls++; return pending.Task; });

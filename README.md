@@ -27,10 +27,12 @@ Toolbox checks for updates at startup. A newer stable release shows an **Update 
 
 Open **WinOpt** from Home or the sidebar. It uses the same window and shared pink and light teal theme. Home's **Grid / List** switch sits beside the Apps heading and changes the app catalog layout.
 
+Search Home by app name or description. **Ctrl+F** opens search; **Ctrl+1/2/3** opens Home/Sling/WinOpt, and **Ctrl+,** opens Settings. Enter opens a single search match; Escape clears the search.
+
 1. **Storage** shows local drives and free/used space. **Temporary files** opens Cleanup.
 2. **Cleanup → Scan** previews user temporary files older than 7 days. Select files, then choose **Clean selected…** and confirm permanent deletion. Nothing starts selected. Close installers first; an old, unlocked file can still be useful.
-3. The list fits at least 10 rows. Drag its lower grip to resize it, or choose **Expand list** for a larger resizable window. Selections stay shared.
-4. **Results** shows the latest outcome. Completed operations leave a full progress bar. Cleanup consumes the preview; scan again to continue. Previews expire after 30 minutes.
+3. The list starts with the largest files first and fits at least 10 rows. Drag its lower grip to resize it, or choose **Expand list** for a larger resizable window. Selections stay shared. Empty scans show whether no files were found or the scan was incomplete.
+4. **Results** shows the latest outcome. **Copy** copies the summary, including technical details when Advanced mode is on. Completed operations leave a full progress bar. Cleanup consumes the preview; scan again to continue. Previews expire after 30 minutes.
 
 Turn on **Advanced mode** for cleanup modes, optional Windows Temp, exclusions, full paths, category/date columns, test runs, Windows tools, and activity details. Safe requires creation and modification more than 7 days ago; Standard requires more than 24 hours; Aggressive includes otherwise eligible files. Returning to simple mode restores Safe/user-temp scope and clears the preview while preserving exclusions. Advanced results distinguish deleted logical bytes from observed drive free-space changes. Changing scan policy invalidates the preview. Unusual TEMP redirects into personal/project or general-purpose folders are refused.
 
@@ -115,6 +117,7 @@ All test deletion is confined to generated repository fixtures under `dist\WinOp
 Run `.\Test-Sling.ps1` to check timesheet parsing, adjusted work hours, calendar and agenda colors, and past-day filtering using local fixtures.
 
 Run `.\Test-Updates.ps1` for startup checks, suggestions, dismissal, retry, offline handling, and banner layout using a simulated release service.
+The same suite checks Home search, keyboard navigation, and Sling's Today/Refresh controls without live account requests.
 
 ## Public website
 

@@ -6,6 +6,8 @@ Advanced mode reveals cleanup policy, optional Windows Temp, exclusions, full pa
 
 The main list fits ten rows, has a drag grip, and opens a resizable expanded review sharing the same selections. Completed operations leave progress at 100%; cancellation and failure do not.
 
+Files start in descending numeric size order. Empty states distinguish an unscanned list, a successful scan with no candidates, and an incomplete scan with no candidates. Copy result includes only the short summary in simple mode and adds the visible technical details in Advanced mode.
+
 Design references reviewed November 20, 2026:
 
 - [Microsoft PC Manager](https://pcmanager.microsoft.com/en-US) groups storage and maintenance around clear user tasks.

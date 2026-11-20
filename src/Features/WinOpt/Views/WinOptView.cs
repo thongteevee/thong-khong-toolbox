@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -49,11 +50,12 @@ namespace Toolbox.WinOpt
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("WinOpt.xaml")) root = (Grid)XamlReader.Load(stream);
             Content = root; Background = root.Background; FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); Tag = false;
             log = new MaintenanceLog(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThongKhongToolbox", "WinOpt", "Logs"));
-            Get<DataGrid>("Candidates").ItemsSource = rows;
+            BindCandidates();
             Get<CheckBox>("AdvancedMode").Checked += delegate { ChangeAdvancedMode(); };
             Get<CheckBox>("AdvancedMode").Unchecked += delegate { ChangeAdvancedMode(); };
             Get<Button>("OpenCleanup").Click += delegate { Get<TabControl>("Sections").SelectedIndex = 1; };
             Get<Button>("ExpandFiles").Click += delegate { CreateFileReview().ShowDialog(); };
+            Get<Button>("CopyOutcome").Click += delegate { CopyLatestResult(Clipboard.SetText); };
             Get<Thumb>("FileListGrip").DragDelta += delegate(object sender, DragDeltaEventArgs args)
             {
                 var row = (RowDefinition)root.FindName("FileListRow");
@@ -85,6 +87,30 @@ namespace Toolbox.WinOpt
         }
 
         private T Get<T>(string name) where T : FrameworkElement { return (T)root.FindName(name); }
+        private void BindCandidates()
+        {
+            var view = CollectionViewSource.GetDefaultView(rows);
+            using (view.DeferRefresh())
+            {
+                view.SortDescriptions.Clear();
+                view.SortDescriptions.Add(new SortDescription("Bytes", ListSortDirection.Descending));
+                view.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+            }
+            var grid = Get<DataGrid>("Candidates");
+            grid.ItemsSource = rows;
+            foreach (var column in grid.Columns) column.SortDirection = null;
+            grid.Columns[3].SortDirection = ListSortDirection.Descending;
+        }
+
+        internal void CopyLatestResult(Action<string> copy)
+        {
+            if (busy || !Get<Button>("CopyOutcome").IsEnabled) return;
+            var text = Get<TextBlock>("Outcome").Text;
+            if (Advanced) text += Environment.NewLine + Get<TextBlock>("OutcomeDetails").Text;
+            try { copy(text); Status("Result copied"); }
+            catch (ExternalException) { Status("Clipboard busy. Try again."); }
+        }
+
         private void ChangeAdvancedMode()
         {
             if (changingAdvanced) return;
@@ -145,12 +171,15 @@ namespace Toolbox.WinOpt
         private void InvalidatePreview()
         {
             if (busy) return;
-            preview = null; rows.Clear(); Get<TextBlock>("PreviewSummary").Text = "Scan to find temporary files.";
+            preview = null; rows.Clear(); Get<TextBlock>("PreviewSummary").Text = "";
             Get<TextBlock>("Categories").Text = ""; Get<TextBlock>("Skipped").Text = ""; UpdateSelection();
         }
         private void UpdateSelection()
         {
             if (updatingSelection) return;
+            Get<FrameworkElement>("EmptyFiles").Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            Get<TextBlock>("EmptyFilesText").Text = busy ? "Working…" : preview == null ? "Scan to find temporary files" :
+                preview.Cancelled || preview.Limited ? "No files in this preview" : "Nothing to clean";
             var selected = rows.Where(r => r.Selected).ToArray();
             Get<TextBlock>("Selection").Text = selected.Length + " selected · " + StorageFormat.Bytes(selected.Sum(r => r.File.Bytes));
             var eligible = !busy && preview != null && !preview.Consumed && selected.Length > 0;
@@ -196,7 +225,7 @@ namespace Toolbox.WinOpt
                 var built = preview.Files.Select(file => new CandidateRow(file)).ToList();
                 foreach (var row in built) row.PropertyChanged += delegate { UpdateSelection(); };
                 rows = new ObservableCollection<CandidateRow>(built);
-                Get<DataGrid>("Candidates").ItemsSource = rows;
+                BindCandidates();
                 var partial = preview.Cancelled ? "Cancelled · partial results. " : preview.Limited ? "Partial results. " : "";
                 Get<TextBlock>("PreviewSummary").Text = partial + rows.Count.ToString("N0") + " files · " + StorageFormat.Bytes(preview.Bytes);
                 Get<TextBlock>("Categories").Text = string.Join("   •   ", preview.Files.GroupBy(f => f.Category).Select(g => g.Key + ": " + g.Count() + " files / " + StorageFormat.Bytes(g.Sum(f => f.Bytes))));
@@ -224,6 +253,7 @@ namespace Toolbox.WinOpt
                 var observations = string.Join(Environment.NewLine, result.Volumes.Select(v => v.Volume + " free before: " + (v.Before.HasValue ? StorageFormat.Bytes(v.Before.Value) : "unavailable") +
                     " · after: " + (v.After.HasValue ? StorageFormat.Bytes(v.After.Value) : "unavailable") + " · observed change: " + (v.Delta.HasValue ? StorageFormat.Bytes(v.Delta.Value) : "unavailable")));
                 Get<TextBlock>("Outcome").Text = summary;
+                Get<Button>("CopyOutcome").IsEnabled = true;
                 Get<TextBlock>("OutcomeDetails").Text = observations + Environment.NewLine +
                     "Free-space changes include other disk activity and may differ from deleted bytes. " + StorageFormat.Reasons(result.Reasons) + " " + logWarning;
                 if (!dryRun) { SetAll(false); Get<TextBlock>("PreviewSummary").Text = "Scan again to refresh."; }

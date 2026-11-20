@@ -47,6 +47,13 @@ namespace Toolbox
             }
             Get<Button>("PreviousWeek").Click += async delegate { await MoveWeek(-7); };
             Get<Button>("NextWeek").Click += async delegate { await MoveWeek(7); };
+            Get<Button>("TodayWeek").Click += async delegate { await ShowScheduleWeek(Planner.Monday(Planner.Local(DateTimeOffset.UtcNow).Date)); };
+            Get<Button>("WeekRefresh").Click += async delegate
+            {
+                if (busy) return;
+                loadedMonday = null;
+                await RefreshWeek();
+            };
             foreach (var mode in new[] { "CalendarMode", "AgendaMode" })
                 Get<RadioButton>(mode).Checked += delegate { UpdateWeek(); };
 
@@ -160,7 +167,13 @@ namespace Toolbox
 
         private async Task MoveWeek(int days)
         {
-            visibleMonday = visibleMonday.AddDays(days);
+            await ShowScheduleWeek(visibleMonday.AddDays(days));
+        }
+
+        private async Task ShowScheduleWeek(DateTime monday)
+        {
+            if (busy || visibleMonday == monday) return;
+            visibleMonday = monday;
             weekReport = settings.Demo ? ShiftRunner.Sample() : null;
             UpdateWeek();
             await RefreshWeek();

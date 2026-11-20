@@ -80,13 +80,7 @@ namespace Toolbox
                     if (target == "Sling" && slingView == "Week") await RefreshWeek();
                 };
             }
-            var apps = Get<ItemsControl>("AppCatalog");
-            apps.ItemsSource = new[] {
-                new { Name = "Sling Shift Auto Apply", Detail = "Preview and apply for shifts around your calendar.",
-                    Icon = "\uE787", Open = new ToolCommand(() => Get<RadioButton>("SlingNav").IsChecked = true) },
-                new { Name = "WinOpt", Detail = "Review temporary files and maintain Windows storage.",
-                    Icon = "\uEDA2", Open = new ToolCommand(() => Get<RadioButton>("WinOptNav").IsChecked = true) }
-            };
+            WireHomeNavigation();
             Get<Button>("OpenSettings").Click += delegate { Get<RadioButton>("SettingsNav").IsChecked = true; };
             WireSlingActions();
             WireSettings();

@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -133,6 +136,48 @@ internal static class LayoutChecks
         Func<CancellationToken, Task> failed = token => { throw new InvalidOperationException("Fixture failure"); };
         ((Task)operation.Invoke(view, new object[] { "Fixture", failed })).GetAwaiter().GetResult();
         if (progress.IsIndeterminate || progress.Value == 100) throw new Exception("Failed operation was marked complete.");
+    }
+
+    internal static void SortEmptyAndCopy()
+    {
+        var view = new WinOptView();
+        var root = (Grid)view.Content;
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var update = typeof(WinOptView).GetMethod("UpdateSelection", flags);
+        var preview = typeof(WinOptView).GetField("preview", flags);
+        var rows = (ObservableCollection<CandidateRow>)typeof(WinOptView).GetField("rows", flags).GetValue(view);
+        if (((Border)root.FindName("EmptyFiles")).Visibility != Visibility.Visible ||
+            !((TextBlock)root.FindName("EmptyFilesText")).Text.Contains("Scan")) throw new Exception("Initial empty list did not suggest scanning.");
+        var fixture = new TempRoot(System.IO.Path.GetFullPath("dist\\WinOptTests\\display-fixtures"), "Fixture");
+        foreach (var bytes in new[] { 9L, 1000L, 20L }) rows.Add(new CandidateRow(new Candidate(System.IO.Path.Combine(fixture.Path, bytes + ".tmp"), fixture,
+            new FileStamp { Length = bytes, Links = 1, CreatedUtc = DateTime.UtcNow.AddDays(-10), ModifiedUtc = DateTime.UtcNow.AddDays(-10) })));
+        update.Invoke(view, null);
+        var grid = (DataGrid)root.FindName("Candidates");
+        var ordered = CollectionViewSource.GetDefaultView(grid.ItemsSource).Cast<CandidateRow>().Select(row => row.Bytes).ToArray();
+        if (!ordered.SequenceEqual(new[] { 1000L, 20L, 9L }) || grid.Columns[3].SortDirection != ListSortDirection.Descending)
+            throw new Exception("Preview did not sort numeric file sizes largest first.");
+        if (((Border)root.FindName("EmptyFiles")).Visibility != Visibility.Collapsed) throw new Exception("Empty overlay hid populated results.");
+        rows.Clear();
+        preview.SetValue(view, new ScanResult(null, new List<Candidate>(), new Dictionary<string, int>(), false, false));
+        update.Invoke(view, null);
+        if (((TextBlock)root.FindName("EmptyFilesText")).Text != "Nothing to clean") throw new Exception("Successful empty scan was not explained.");
+        preview.SetValue(view, new ScanResult(null, new List<Candidate>(), new Dictionary<string, int>(), true, false));
+        update.Invoke(view, null);
+        if (((TextBlock)root.FindName("EmptyFilesText")).Text == "Nothing to clean") throw new Exception("Cancelled scan was mistaken for a clean system.");
+
+        string copied = null;
+        view.CopyLatestResult(text => copied = text);
+        if (copied != null) throw new Exception("Copy allowed an absent result.");
+        ((TextBlock)root.FindName("Outcome")).Text = "2 files deleted · 20 KiB";
+        ((TextBlock)root.FindName("OutcomeDetails")).Text = "Fixture volume details";
+        ((Button)root.FindName("CopyOutcome")).IsEnabled = true;
+        view.CopyLatestResult(text => copied = text);
+        if (copied != "2 files deleted · 20 KiB") throw new Exception("Simple mode copied extra technical detail.");
+        ((CheckBox)root.FindName("AdvancedMode")).IsChecked = true;
+        view.CopyLatestResult(text => copied = text);
+        if (!copied.Contains("Fixture volume details")) throw new Exception("Advanced copy omitted the displayed details.");
+        view.CopyLatestResult(text => { throw new ExternalException("Fixture busy clipboard"); });
+        if (!((TextBlock)root.FindName("Status")).Text.Contains("Clipboard busy")) throw new Exception("Busy clipboard was not handled.");
     }
 
     internal static void CatalogSwitchAndCommands()

@@ -146,13 +146,14 @@
             <Button x:Name="ExpandFiles" Content="Expand list"/></WrapPanel>
         </StackPanel>
         <StackPanel Grid.Row="1" Margin="0,0,0,9">
-          <TextBlock x:Name="PreviewSummary" Text="Scan to find temporary files." FontWeight="SemiBold"/>
+          <TextBlock x:Name="PreviewSummary" FontWeight="SemiBold"/>
           <StackPanel Style="{StaticResource AdvancedOnly}">
           <TextBlock x:Name="Categories" Style="{StaticResource WinOptMuted}" FontSize="12" Margin="0,4,0,0"/>
           <TextBlock x:Name="Skipped" Style="{StaticResource WinOptMuted}" FontSize="12"/>
           </StackPanel>
         </StackPanel>
-        <DataGrid x:Name="Candidates" Grid.Row="2" MinHeight="400" ColumnHeaderHeight="34" CanUserSortColumns="True" AutomationProperties.Name="Temporary file preview">
+        <Grid Grid.Row="2" MinHeight="400">
+        <DataGrid x:Name="Candidates" MinHeight="400" ColumnHeaderHeight="34" CanUserSortColumns="True" AutomationProperties.Name="Temporary file preview">
           <DataGrid.Columns>
             <DataGridTemplateColumn Header="Clean" Width="58">
               <DataGridTemplateColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="{Binding Path, StringFormat=Select {0}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
@@ -165,6 +166,10 @@
             <DataGridTextColumn Header="Modified" Binding="{Binding Modified, StringFormat=g}" Width="140" IsReadOnly="True" Visibility="Collapsed"/>
           </DataGrid.Columns>
         </DataGrid>
+          <Border x:Name="EmptyFiles" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource SurfaceFill}" Padding="18,12" CornerRadius="10" IsHitTestVisible="False">
+            <TextBlock x:Name="EmptyFilesText" Text="Scan to find temporary files" Style="{StaticResource WinOptMuted}" FontWeight="Normal"/>
+          </Border>
+        </Grid>
         <Thumb x:Name="FileListGrip" Grid.Row="3" Cursor="SizeNS" ToolTip="Drag to resize list" AutomationProperties.Name="Resize file list">
           <Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="Transparent"><Border Width="60" Height="3" CornerRadius="2" Background="{DynamicResource GripBrush}" VerticalAlignment="Center"/></Border></ControlTemplate></Thumb.Template>
         </Thumb>
@@ -183,7 +188,8 @@
     <TabItem Header="Results">
       <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="2,18,10,0">
         <Border Style="{StaticResource Card}"><StackPanel>
-          <TextBlock Text="Latest result" FontSize="20" FontWeight="SemiBold"/>
+          <DockPanel><Button x:Name="CopyOutcome" DockPanel.Dock="Right" Content="Copy" IsEnabled="False" ToolTip="Copy result" AutomationProperties.Name="Copy result" Margin="12,0,0,0"/>
+            <TextBlock Text="Latest result" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
           <TextBlock x:Name="Outcome" Text="No cleanup yet." Margin="0,12,0,0"/>
           <TextBlock x:Name="OutcomeDetails" Style="{StaticResource AdvancedOnly}" Margin="0,8,0,0"/>
         </StackPanel></Border>

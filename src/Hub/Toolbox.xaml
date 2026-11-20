@@ -350,6 +350,18 @@
               </StackPanel>
             </Border>
           </WrapPanel>
+          <Border HorizontalAlignment="Left" MaxWidth="380" Margin="0,0,0,14" BorderBrush="{DynamicResource ControlLine}" BorderThickness="1" CornerRadius="10" Background="{DynamicResource SurfaceFill}">
+            <DockPanel>
+              <Button x:Name="ClearAppSearch" DockPanel.Dock="Right" Content="×" Visibility="Collapsed" ToolTip="Clear search" AutomationProperties.Name="Clear app search" BorderThickness="0" Padding="10,5"/>
+              <Grid MinWidth="180">
+                <TextBox x:Name="AppSearch" BorderThickness="0" Background="Transparent" Padding="12,9" ToolTip="Search apps · Ctrl+F" AutomationProperties.Name="Search apps"/>
+                <TextBlock Text="Search apps" Foreground="{DynamicResource Muted}" Margin="12,9" IsHitTestVisible="False">
+                  <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=AppSearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                </TextBlock>
+              </Grid>
+            </DockPanel>
+          </Border>
+          <TextBlock x:Name="NoAppsFound" Text="No apps found." Visibility="Collapsed" Style="{StaticResource Caption}" Margin="0,0,0,12"/>
           <ItemsControl x:Name="AppCatalog" Tag="{Binding IsChecked, ElementName=AppGridView}">
             <ItemsControl.Style>
               <Style TargetType="ItemsControl">
@@ -418,6 +430,8 @@
         <WrapPanel Margin="12,10,12,3">
           <Button x:Name="PreviousWeek" Content="‹" AutomationProperties.Name="Previous week" Padding="11,5" MinHeight="32" Margin="0,0,5,5"/>
           <Button x:Name="NextWeek" Content="›" AutomationProperties.Name="Next week" Padding="11,5" MinHeight="32" Margin="0,0,10,5"/>
+          <Button x:Name="TodayWeek" Content="Today" ToolTip="Return to this week" Padding="10,5" MinHeight="32" Margin="0,0,5,5"/>
+          <Button x:Name="WeekRefresh" ToolTip="Refresh schedule" AutomationProperties.Name="Refresh schedule" Padding="10,5" MinHeight="32" Margin="0,0,10,5"><TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"/></Button>
           <TextBlock x:Name="WeekText" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,5"/>
           <RadioButton x:Name="CalendarMode" GroupName="ScheduleLayout" Content="Calendar" Style="{StaticResource Navigation}" IsChecked="True"/>
           <RadioButton x:Name="AgendaMode" GroupName="ScheduleLayout" Content="Agenda" Style="{StaticResource Navigation}"/>

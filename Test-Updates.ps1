@@ -13,7 +13,7 @@ $resources = @(
     ('/resource:' + (Join-Path $project 'src\Features\WinOpt\Views\WinOpt.xaml') + ',WinOpt.xaml')
 )
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $project 'src') -Filter '*.cs' -Recurse -File | Select-Object -ExpandProperty FullName)
-$sources += Join-Path $project 'tests\Hub\UpdateChecks.cs'
+$sources += @(Get-ChildItem -LiteralPath (Join-Path $project 'tests\Hub') -Filter '*.cs' -File | Select-Object -ExpandProperty FullName)
 $executable = Join-Path $output 'UpdateTests.exe'
 & (Join-Path $framework 'csc.exe') /nologo /target:exe /main:Toolbox.Tests.UpdateChecks /codepage:65001 "/out:$executable" $resources $references $sources
 if ($LASTEXITCODE -ne 0) { throw 'Update tests did not compile.' }
