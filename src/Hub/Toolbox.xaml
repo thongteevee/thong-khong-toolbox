@@ -17,6 +17,7 @@
     <SolidColorBrush x:Key="RowHover" Color="#F0F5FC"/>
     <SolidColorBrush x:Key="DisabledFill" Color="#F0F3F7"/>
     <SolidColorBrush x:Key="DisabledLine" Color="#CAD3E0"/>
+    <SolidColorBrush x:Key="PinkAccent" Color="#B62F74"/>
     <SolidColorBrush x:Key="ModeFill" Color="#2D4566"/>
     <SolidColorBrush x:Key="Ink" Color="#17263E"/>
     <SolidColorBrush x:Key="Muted" Color="#52647D"/>
@@ -253,7 +254,7 @@
 
   <Grid.ColumnDefinitions><ColumnDefinition x:Name="NavigationColumn" Width="65" MinWidth="55" MaxWidth="205"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-  <Border Grid.ColumnSpan="2" Background="{DynamicResource HeaderFill}" Padding="21,10">
+  <Border Grid.ColumnSpan="2" Background="{DynamicResource HeaderFill}" BorderBrush="{DynamicResource PinkAccent}" BorderThickness="0,0,0,3" Padding="21,10">
     <DockPanel LastChildFill="True">
       <Border x:Name="ModeBadge" DockPanel.Dock="Right" Visibility="Collapsed" Background="{DynamicResource ModeFill}" Padding="8,4" Margin="8,0,0,0" CornerRadius="5" VerticalAlignment="Center">
         <TextBlock x:Name="ModeText" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
@@ -380,7 +381,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <Border x:Name="MikuHomeStickers" HorizontalAlignment="Left" Visibility="Collapsed" Margin="0,8,0,4" Padding="14,6">
-            <TextBlock Text="♪  ♡  ✿" FontFamily="Segoe UI Symbol" FontSize="42" Foreground="{DynamicResource Accent}" AutomationProperties.Name="Music, heart, and flower decorations"/>
+            <TextBlock FontFamily="Segoe UI Symbol" FontSize="42" AutomationProperties.Name="Music, heart, and flower decorations"><Run Text="♪  " Foreground="{DynamicResource Accent}"/><Run Text="♡  ✿" Foreground="{DynamicResource PinkAccent}"/></TextBlock>
           </Border>
           <Border Style="{StaticResource Surface}" Padding="16" Margin="0,12,0,0"
                   MaxWidth="350" HorizontalAlignment="Left">
@@ -497,12 +498,12 @@
         <Border Style="{StaticResource Surface}" Padding="15" Margin="0,0,0,12">
           <StackPanel>
             <TextBlock Text="Miku theme" Style="{StaticResource SectionTitle}"/>
-            <CheckBox x:Name="MikuPinkTheme" Content="Miku pink" Margin="0,4,0,10"/>
+            <CheckBox x:Name="MikuPinkTheme" Content="Miku teal + pink" Margin="0,4,0,10"/>
             <CheckBox x:Name="MikuArtwork" Content="Show original Miku art and decorations" Margin="0,0,0,10"/>
             <WrapPanel x:Name="MikuArtworkPreview" Visibility="Collapsed">
               <Image x:Name="MikuSettingsPicture" Width="200" Height="200" Stretch="Uniform" Margin="0,0,12,8" AutomationProperties.Name="Original Hatsune Miku illustration by KEI"/>
               <StackPanel Width="280" VerticalAlignment="Center">
-                <TextBlock Text="♪  ♡  ✿" FontFamily="Segoe UI Symbol" FontSize="42" Foreground="{DynamicResource Accent}" Margin="0,0,0,12"/>
+                <TextBlock FontFamily="Segoe UI Symbol" FontSize="42" Margin="0,0,0,12"><Run Text="♪  " Foreground="{DynamicResource Accent}"/><Run Text="♡  ✿" Foreground="{DynamicResource PinkAccent}"/></TextBlock>
                 <TextBlock Text="Hatsune Miku © Crypton Future Media, Inc. 2007 · Art by KEI" Style="{StaticResource Caption}" Margin="0,0,0,8"/>
                 <Button x:Name="MikuSettingsCredit" Content="Artwork source · CC BY-NC 3.0" HorizontalAlignment="Left" FontSize="12"/>
               </StackPanel>

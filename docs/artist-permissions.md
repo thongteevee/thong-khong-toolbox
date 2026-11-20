@@ -11,6 +11,10 @@ Prepared November 19, 2026. The current replacement theme uses one original illu
 
 Crypton publishes the original illustration under CC BY-NC 3.0 for noncommercial use with attribution. The in-app credits link to its source and terms. Separate written permission for the specific app use can be requested using the draft below. Record the reply and any conditions before claiming additional permission. [Crypton's terms](https://piapro.net/intl/en_for_creators.html)
 
+## Developer research contact
+
+For research on character-themed desktop software, CrystalDiskMark developer **hiyohiyo** publishes **hiyohiyo@crystalmark.info** on the [official profile](https://crystalmark.info/en/information/profile/). Its [themed editions](https://crystalmark.info/en/software/crystaldiskmark/) and [artist acknowledgments](https://crystalmark.info/en/software/crystaldiskmark/crystaldiskmark-acknowledgments/) are references for character placement and theme colors. Ask about the process for arranging artist collaborations and credits.
+
 ## Permission request draft
 
 Suggested subject — Request to use original Hatsune Miku artwork in Thong Khong Toolbox

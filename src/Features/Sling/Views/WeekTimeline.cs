@@ -34,10 +34,10 @@ namespace Toolbox
 
         internal static void SetMikuTheme(bool enabled)
         {
-            Ink = Brush(enabled ? "#46293B" : "#17263E");
-            Muted = Brush(enabled ? "#77566B" : "#52647D");
+            Ink = Brush(enabled ? "#213E43" : "#17263E");
+            Muted = Brush(enabled ? "#52696F" : "#52647D");
             GridLine = Brush(enabled ? "#EED0DF" : "#E0E8F3");
-            Heading = Brush(enabled ? "#FBE4EF" : "#F0F4FA");
+            Heading = Brush(enabled ? "#E3F5F2" : "#F0F4FA");
             Fills[0] = Brush(enabled ? "#FCE1EE" : "#E3EDFE");
             Colors[0] = Brush(enabled ? "#96275D" : "#24539B");
         }

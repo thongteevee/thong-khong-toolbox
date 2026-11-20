@@ -59,14 +59,14 @@ namespace Toolbox
         {
             var keys = new[] { "WindowFill", "Ink", "Muted", "Line", "Accent", "SurfaceFill", "HeaderFill",
                 "RailFill", "NavHover", "NavSelected", "NavInk", "ControlLine", "ControlHover", "GripBrush",
-                "CheckRing", "RowHover", "DisabledFill", "DisabledLine", "ModeFill" };
-            var pink = new[] { "#FFF3F8", "#46293B", "#77566B", "#EED0DF", "#AD286A", "#FFFBFD", "#772649",
-                "#FBE4EF", "#FCE3F0", "#F8CDDF", "#842452", "#DBADC3", "#C43B80", "#B87D99",
-                "#AA6B8B", "#FFF0F7", "#F4EAF0", "#DCC8D4", "#985476" };
+                "CheckRing", "RowHover", "DisabledFill", "DisabledLine", "ModeFill", "PinkAccent" };
+            var miku = new[] { "#FFF4F9", "#213E43", "#52696F", "#EACDDD", "#007F83", "#FFFBFD", "#174B50",
+                "#DEF4F0", "#E8F8F5", "#BDEBE4", "#0D6161", "#DBADC3", "#B62F74", "#5CA99F",
+                "#007F83", "#FCE6F0", "#F1EBEF", "#DCC8D4", "#A43C74", "#B62F74" };
             var classic = new[] { "#F3F6FA", "#17263E", "#52647D", "#D8E2EF", "#2256B4", "#FFFFFF", "#17263E",
                 "#EAF0F7", "#EDF2FB", "#DDE9FE", "#1749A9", "#BFD1EF", "#98B2D9", "#849AB7",
-                "#6B81A1", "#F0F5FC", "#F0F3F7", "#CAD3E0", "#2D4566" };
-            var colors = appearance.MikuPink ? pink : classic;
+                "#6B81A1", "#F0F5FC", "#F0F3F7", "#CAD3E0", "#2D4566", "#AD286A" };
+            var colors = appearance.MikuPink ? miku : classic;
             for (var i = 0; i < keys.Length; i++) root.Resources[keys[i]] = WeekTimeline.Brush(colors[i]);
             Background = root.Background;
             var visibility = appearance.MikuPink && appearance.Artwork ? Visibility.Visible : Visibility.Collapsed;
