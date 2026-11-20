@@ -13,6 +13,7 @@ namespace Toolbox
     {
         private void WireSettings()
         {
+            WireMikuTheme();
             WireUpdateCheck();
             var demo = Get<CheckBox>("Demo");
             demo.IsChecked = settings.Demo;

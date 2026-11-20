@@ -15,6 +15,10 @@ Both editions use the same local connections and preferences within your Windows
 
 Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable **Demo mode** under **Sling → Rules**, then choose **Preview matches**. Demo applications are simulated.
 
+## Miku pink theme
+
+**Toolbox Settings → Miku theme** controls the pink palette and the character artwork. Pink styling and artwork start enabled. Turn off **Show Miku pictures and stickers** to use the colors on their own, or turn off **Miku pink** for the classic colors. The cherry blossom banner and three chibi stickers are bundled with the app and work offline. Your choices are saved for the next launch.
+
 ## Check for updates
 
 Open **Toolbox Settings → Updates** to see your current version and check for the latest stable GitHub release. When a newer version is available, choose **Update now** to download the release, verify its SHA-256 checksum, and restart into the updated app. Installed copies upgrade through Windows Setup. Portable copies replace the running EXE and retain a backup alongside it. Settings and account connections are stored separately. **View release downloads** also opens the release page in your browser.

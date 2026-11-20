@@ -11,10 +11,10 @@ namespace Toolbox
 {
     internal sealed class WeekTimeline
     {
-        private static readonly Brush Ink = Brush("#17263E");
-        private static readonly Brush Muted = Brush("#52647D");
-        private static readonly Brush GridLine = Brush("#E0E8F3");
-        private static readonly Brush Heading = Brush("#F0F4FA");
+        private static Brush Ink = Brush("#17263E");
+        private static Brush Muted = Brush("#52647D");
+        private static Brush GridLine = Brush("#E0E8F3");
+        private static Brush Heading = Brush("#F0F4FA");
         private static readonly string[] CategoryLabels = { "Calendar events", "Booked shifts", "Available shifts", "Applied", "Needs confirmation" };
         private static readonly Brush[] Fills = { Brush("#E3EDFE"), Brush("#F0E7FA"), Brush("#E2F4EA"), Brush("#DDF2F4"), Brush("#FFF0CF") };
         private static readonly Brush[] Colors = { Brush("#24539B"), Brush("#6A3D97"), Brush("#16654B"), Brush("#17606A"), Brush("#784C14") };
@@ -29,6 +29,22 @@ namespace Toolbox
             this.host = host;
             this.legend = legend;
             this.results = results;
+            BuildLegend();
+        }
+
+        internal static void SetMikuTheme(bool enabled)
+        {
+            Ink = Brush(enabled ? "#46293B" : "#17263E");
+            Muted = Brush(enabled ? "#77566B" : "#52647D");
+            GridLine = Brush(enabled ? "#EED0DF" : "#E0E8F3");
+            Heading = Brush(enabled ? "#FBE4EF" : "#F0F4FA");
+            Fills[0] = Brush(enabled ? "#FCE1EE" : "#E3EDFE");
+            Colors[0] = Brush(enabled ? "#96275D" : "#24539B");
+        }
+
+        private void BuildLegend()
+        {
+            legend.Children.Clear();
             for (var i = 0; i < (results ? CategoryLabels.Length : CategoryLabels.Length - 1); i++)
             {
                 var item = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 16, 5) };
@@ -56,6 +72,7 @@ namespace Toolbox
 
         internal void Render(DateTime monday, RunReport report, bool agenda)
         {
+            BuildLegend();
             var from = Planner.At(monday, TimeSpan.Zero);
             var until = Planner.At(monday.AddDays(7), TimeSpan.Zero);
             var entries = report == null ? new List<Slot>() : report.Calendar.Concat(report.Shifts.Where(shift => shift.Kind == "Available" &&
