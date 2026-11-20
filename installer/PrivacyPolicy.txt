@@ -35,7 +35,7 @@ Toolbox communicates with Google and Sling to provide the features described her
 Google API Services User Data Policy
 https://developers.google.com/terms/api-services-user-data-policy
 
-GitHub hosts downloads and the public support tracker. When you select Check for updates, Toolbox requests public release information from GitHub. Update now downloads release files and checksums to a temporary folder, verifies the downloads, and restarts Toolbox to apply the update. The requests identify Toolbox and its version and do not include your accounts, credentials, or schedule. Portable updates retain the previous executable as a backup alongside the app. Information you choose to post to the public tracker is handled by GitHub. Keep private information out of public reports.
+GitHub hosts downloads and the public support tracker. At startup, and when you select Check for updates, Toolbox requests public release information from GitHub. You choose whether to install an available update. Update now downloads release files and checksums to a temporary folder, verifies the downloads, and restarts Toolbox to apply the update. The requests identify Toolbox and its version and do not include your accounts, credentials, or schedule. Portable updates retain the previous executable as a backup alongside the app. Information you choose to post to the public tracker is handled by GitHub. Keep private information out of public reports.
 
 6. Retention, revocation, and deletion
 

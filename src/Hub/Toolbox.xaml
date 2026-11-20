@@ -259,12 +259,24 @@
   <Grid.ColumnDefinitions><ColumnDefinition x:Name="NavigationColumn" Width="65" MinWidth="55" MaxWidth="205"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Border Grid.ColumnSpan="2" Background="{DynamicResource HeaderFill}" BorderBrush="{DynamicResource PinkAccent}" BorderThickness="0,0,0,3" Padding="21,10">
+    <StackPanel>
     <DockPanel LastChildFill="True">
       <Border x:Name="ModeBadge" DockPanel.Dock="Right" Visibility="Collapsed" Background="{DynamicResource ModeFill}" Padding="8,4" Margin="8,0,0,0" CornerRadius="5" VerticalAlignment="Center">
         <TextBlock x:Name="ModeText" Foreground="{DynamicResource HeaderInk}" FontSize="12" FontWeight="SemiBold"/>
       </Border>
       <TextBlock Text="Thong Khong Toolbox" Foreground="{DynamicResource HeaderInk}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
     </DockPanel>
+    <Border x:Name="UpdateBanner" Visibility="Collapsed" Background="{DynamicResource SurfaceFill}" BorderBrush="{DynamicResource ControlLine}"
+            BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,10,0,2">
+      <StackPanel>
+        <TextBlock x:Name="UpdateBannerText" FontWeight="SemiBold" AutomationProperties.LiveSetting="Polite"/>
+        <WrapPanel Margin="0,6,0,0">
+          <Button x:Name="StartupUpdateNow" Content="Update now" Style="{StaticResource PrimaryButton}" Margin="0,2,8,2"/>
+          <Button x:Name="DismissUpdate" Content="Later" Margin="0,2,0,2"/>
+        </WrapPanel>
+      </StackPanel>
+    </Border>
+    </StackPanel>
   </Border>
   <Border x:Name="ToolRail" Grid.Row="1" Grid.RowSpan="3" Background="{DynamicResource RailFill}" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource Line}">
     <StackPanel x:Name="Navigation" Margin="0,13,0,0">
@@ -561,6 +573,7 @@
           <StackPanel>
             <TextBlock Text="Updates" Style="{StaticResource SectionTitle}"/>
             <TextBlock x:Name="ToolboxVersion" Style="{StaticResource Caption}" Margin="0,0,0,9"/>
+            <TextBlock Text="Toolbox checks for updates when it starts. You choose when to download and restart." Style="{StaticResource Caption}" Margin="0,0,0,9"/>
             <WrapPanel>
               <Button x:Name="CheckForUpdates" Content="Check for updates" Margin="0,0,8,5"/>
               <Button x:Name="InstallUpdate" Content="Update now" Style="{StaticResource PrimaryButton}" Margin="0,0,8,5" Visibility="Collapsed"/>

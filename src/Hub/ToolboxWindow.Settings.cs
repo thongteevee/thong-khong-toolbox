@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -126,77 +124,6 @@ namespace Toolbox
                     ResetReport();
                     SetStatus("Sling disconnected from Toolbox.");
                 });
-            };
-        }
-
-        private void WireUpdateCheck()
-        {
-            var current = ToolboxReleases.CurrentVersion;
-            Get<TextBlock>("ToolboxVersion").Text = "Current version " + current;
-            var check = Get<Button>("CheckForUpdates");
-            var release = Get<Button>("OpenLatestRelease");
-            var install = Get<Button>("InstallUpdate");
-            var status = Get<TextBlock>("UpdateCheckStatus");
-            install.Click += async delegate
-            {
-                if (busy) return;
-                if (winOptView != null && winOptView.IsWorking)
-                {
-                    status.Text = "Wait for WinOpt to finish before updating Toolbox.";
-                    return;
-                }
-                var ready = false;
-                await Operation("Downloading the Toolbox update…", async delegate
-                {
-                    try
-                    {
-                        var downloaded = await ToolboxUpdater.Download((Version)install.Tag, message =>
-                        {
-                            status.Text = message;
-                            SetStatus(message);
-                        });
-                        status.Text = "Restarting Toolbox to install the update…";
-                        await downloaded.Launch();
-                        ready = true;
-                    }
-                    catch
-                    {
-                        status.Text = "Update could not complete. Try again or use View release downloads.";
-                        throw;
-                    }
-                });
-                if (ready) Close();
-            };
-
-            release.Click += delegate
-            {
-                Guard(delegate { Process.Start(new ProcessStartInfo((string)release.Tag) { UseShellExecute = true }); });
-            };
-            check.Click += async delegate
-            {
-                check.IsEnabled = false;
-                release.Visibility = Visibility.Collapsed;
-                install.Visibility = Visibility.Collapsed;
-                status.Text = "Checking GitHub for updates…";
-                try
-                {
-                    var latest = await ToolboxReleases.GetLatestVersion();
-                    if (latest <= current)
-                    {
-                        status.Text = "Toolbox is up to date.";
-                        return;
-                    }
-
-                    status.Text = "Version " + latest + " is available.";
-                    release.Tag = ToolboxReleases.GetReleasePage(latest);
-                    release.Visibility = Visibility.Visible;
-                    install.Tag = latest;
-                    install.Visibility = Visibility.Visible;
-                }
-                catch (HttpRequestException) { status.Text = "Could not reach GitHub. Check your connection and try again."; }
-                catch (TaskCanceledException) { status.Text = "The update check timed out. Try again."; }
-                catch (InvalidOperationException exception) { status.Text = exception.Message; }
-                finally { check.IsEnabled = true; }
             };
         }
 

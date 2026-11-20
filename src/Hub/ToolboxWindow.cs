@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Reflection;
 using System.Security;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,8 +25,10 @@ namespace Toolbox
         private WinOpt.WinOptView winOptView;
         private static readonly string[] HubViews = { "Home", "Sling", "WinOpt", "Settings" };
 
-        internal ToolboxWindow(double? textScale = null, HubAccounts accountStore = null)
+        internal ToolboxWindow(double? textScale = null, HubAccounts accountStore = null,
+            Func<CancellationToken, Task<Version>> releaseLookup = null)
         {
+            latestRelease = releaseLookup ?? ToolboxReleases.GetLatestVersion;
             accounts = accountStore ?? new HubAccounts(LocalData.ToolboxFolder);
             settings = LocalData.Load("settings", new Settings());
             if (settings.Version < Settings.CurrentVersion)

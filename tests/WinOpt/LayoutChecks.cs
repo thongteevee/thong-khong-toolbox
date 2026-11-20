@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -34,7 +38,7 @@ internal static class LayoutChecks
         var view = new WinOptView();
         var root = (Grid)view.Content;
         var sections = (TabControl)root.FindName("Sections");
-        foreach (double width in new[] { 960.0, 590.0, 400.0 })
+        foreach (double width in new[] { 960.0, 590.0, 280.0 })
         {
             Layout(view, width, 680);
             var panel = Children<WrapPanel>(sections).First(p => p.IsItemsHost);
@@ -49,13 +53,86 @@ internal static class LayoutChecks
                 if (borderBounds.Right > header.ActualWidth + .1 || borderBounds.Bottom > header.ActualHeight + .1)
                     throw new Exception("Rounded tab border is cropped at width " + width);
             }
-            if (width == 400 && headers[2].TranslatePoint(new Point(0, 0), panel).Y <= 0)
+            if (width == 280 && headers[2].TranslatePoint(new Point(0, 0), panel).Y <= 0)
                 throw new Exception("Narrow tabs must wrap.");
         }
         sections.SelectedIndex = 1; Layout(view, 850, 680);
         if (((Button)root.FindName("Clean")).IsEnabled || ((Button)root.FindName("DryRun")).IsEnabled)
             throw new Exception("Cleanup must be disabled before a preview and selection.");
         if (!((Button)root.FindName("Scan")).IsEnabled) throw new Exception("Scan should initially be enabled.");
+    }
+
+    internal static void SimpleModeAndFileList()
+    {
+        var view = new WinOptView();
+        var root = (Grid)view.Content;
+        var sections = (TabControl)root.FindName("Sections");
+        sections.SelectedIndex = 1; Layout(view, 1000, 750);
+        var toggle = (CheckBox)root.FindName("AdvancedMode");
+        var policy = (StackPanel)root.FindName("AdvancedPolicy");
+        var grid = (DataGrid)root.FindName("Candidates");
+        if (toggle.IsChecked == true || policy.Visibility != Visibility.Collapsed || grid.Columns[2].Visibility != Visibility.Collapsed)
+            throw new Exception("Default UI exposed advanced options.");
+        var rows = (ObservableCollection<CandidateRow>)typeof(WinOptView).GetField("rows", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(view);
+        var fixture = new TempRoot(System.IO.Path.GetFullPath("dist\\WinOptTests\\display-fixtures"), "Fixture");
+        for (int index = 0; index < 20; index++) rows.Add(new CandidateRow(new Candidate(System.IO.Path.Combine(fixture.Path, "sample-" + index + ".tmp"), fixture,
+            new FileStamp { Length = 1024, Links = 1, CreatedUtc = DateTime.UtcNow.AddDays(-10), ModifiedUtc = DateTime.UtcNow.AddDays(-10) })));
+        Layout(view, 1000, 750);
+        var scroll = ((Grid)((TabItem)sections.Items[1]).Content).Children.OfType<ScrollViewer>().Single();
+        var visible = Children<DataGridRow>(grid).Count(row => {
+            var bounds = row.TransformToAncestor(grid).TransformBounds(new Rect(row.RenderSize));
+            var viewport = row.TransformToAncestor(scroll).TransformBounds(new Rect(row.RenderSize));
+            return bounds.Top >= grid.ColumnHeaderHeight && bounds.Bottom <= grid.ActualHeight && viewport.Top >= 0 && viewport.Bottom <= scroll.ActualHeight;
+        });
+        if (visible < 10) throw new Exception("File list must fit ten complete rows; fitted " + visible);
+        var clean = (Button)root.FindName("Clean");
+        var cleanBounds = clean.TransformToAncestor(view).TransformBounds(new Rect(clean.RenderSize));
+        if (cleanBounds.Bottom > view.ActualHeight || cleanBounds.Top < 0) throw new Exception("Clean action was clipped.");
+        var listRow = (RowDefinition)root.FindName("FileListRow");
+        ((Thumb)root.FindName("FileListGrip")).RaiseEvent(new DragDeltaEventArgs(0, 120) { RoutedEvent = Thumb.DragDeltaEvent });
+        if (listRow.Height.Value != 520) throw new Exception("File list did not grow when dragged.");
+        ((Thumb)root.FindName("FileListGrip")).RaiseEvent(new DragDeltaEventArgs(0, -1000) { RoutedEvent = Thumb.DragDeltaEvent });
+        if (listRow.Height.Value < 400) throw new Exception("File list shrank below ten rows.");
+        var review = view.CreateFileReview();
+        var reviewGrid = Children<DataGrid>((DependencyObject)review.Content).Single();
+        if (review.ResizeMode != ResizeMode.CanResize || !Object.ReferenceEquals(reviewGrid.ItemsSource, grid.ItemsSource))
+            throw new Exception("Expanded review must be resizable and preserve selections.");
+        var same = reviewGrid.Items.Cast<CandidateRow>().First(); same.Selected = true;
+        if (!rows[0].Selected) throw new Exception("Expanded review did not share selection state.");
+        review.Close();
+        toggle.IsChecked = true; Layout(view, 1000, 800);
+        if (policy.Visibility != Visibility.Visible || grid.Columns[2].Visibility != Visibility.Visible)
+            throw new Exception("Advanced mode did not reveal detailed options.");
+        ((ComboBox)root.FindName("Mode")).SelectedIndex = 2;
+        ((CheckBox)root.FindName("WindowsTemp")).IsChecked = true;
+        ((TextBox)root.FindName("Exclusions")).Text = fixture.Path;
+        var previewField = typeof(WinOptView).GetField("preview", BindingFlags.Instance | BindingFlags.NonPublic);
+        previewField.SetValue(view, new ScanResult(null, new List<Candidate>(), new Dictionary<string, int>(), false, false));
+        toggle.IsChecked = false; Layout(view, 1000, 800);
+        if (((ComboBox)root.FindName("Mode")).SelectedIndex != 0 || ((CheckBox)root.FindName("WindowsTemp")).IsChecked == true ||
+            previewField.GetValue(view) != null || rows.Count != 0 || ((TextBox)root.FindName("Exclusions")).Text != fixture.Path)
+            throw new Exception("Simple mode did not restore Safe policy, invalidate preview, and retain exclusions.");
+    }
+
+    internal static void CompletedProgress()
+    {
+        var view = new WinOptView();
+        var root = (Grid)view.Content;
+        var progress = (ProgressBar)root.FindName("Progress");
+        var operation = typeof(WinOptView).GetMethod("Operation", BindingFlags.Instance | BindingFlags.NonPublic);
+        Func<CancellationToken, Task> success = token => {
+            if (!progress.IsIndeterminate || progress.Value != 0 || ((CheckBox)root.FindName("AdvancedMode")).IsEnabled)
+                throw new Exception("Running state did not reset progress and lock policy.");
+            return Task.FromResult(0);
+        };
+        ((Task)operation.Invoke(view, new object[] { "Fixture", success })).GetAwaiter().GetResult();
+        if (progress.IsIndeterminate || progress.Value != 100) throw new Exception("Completed operation must leave a full progress bar.");
+        Func<CancellationToken, Task> cancelled = token => { view.CancelOperation(); return Task.FromResult(0); };
+        ((Task)operation.Invoke(view, new object[] { "Fixture", cancelled })).GetAwaiter().GetResult();
+        if (progress.IsIndeterminate || progress.Value == 100) throw new Exception("Cancelled operation was marked complete.");
+        Func<CancellationToken, Task> failed = token => { throw new InvalidOperationException("Fixture failure"); };
+        ((Task)operation.Invoke(view, new object[] { "Fixture", failed })).GetAwaiter().GetResult();
+        if (progress.IsIndeterminate || progress.Value == 100) throw new Exception("Failed operation was marked complete.");
     }
 
     internal static void CatalogSwitchAndCommands()

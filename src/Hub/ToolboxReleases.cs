@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Toolbox
@@ -21,10 +22,10 @@ namespace Toolbox
 
         internal static string GetReleasePage(Version version) { return ReleasePage + version; }
 
-        internal static async Task<Version> GetLatestVersion()
+        internal static async Task<Version> GetLatestVersion(CancellationToken cancellationToken = default(CancellationToken))
         {
             using (var response = await Api.Send(LatestEndpoint, HttpMethod.Get, null,
-                userAgent: "ThongKhongToolbox/" + CurrentVersion).ConfigureAwait(false))
+                userAgent: "ThongKhongToolbox/" + CurrentVersion, cancellationToken: cancellationToken).ConfigureAwait(false))
             {
                 if (response.StatusCode == HttpStatusCode.NotFound)
                     throw new InvalidOperationException("GitHub has no published Toolbox release.");

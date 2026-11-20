@@ -323,6 +323,8 @@ internal static class WinOptTests
         });
         Test("rounded tab borders fit and wrap; cleanup starts disabled", LayoutChecks.TabsAndInitialState);
         Test("Grid/List switching and tile commands work in WPF", LayoutChecks.CatalogSwitchAndCommands);
+        Test("simple mode, advanced policy, ten-row preview, resizing and expanded selections", LayoutChecks.SimpleModeAndFileList);
+        Test("completed progress stays full; cancellation and failure do not show completion", LayoutChecks.CompletedProgress);
         Console.WriteLine(passed + " passed; " + failed + " failed. All cleanup used isolated repository fixtures.");
         return failed == 0 ? 0 : 1;
     }

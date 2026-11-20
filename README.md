@@ -21,16 +21,18 @@ Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable 
 
 ## Check for updates
 
-Open **Toolbox Settings → Updates** to see your current version and check for the latest stable GitHub release. When a newer version is available, choose **Update now** to download the release, verify its SHA-256 checksum, and restart into the updated app. Installed copies upgrade through Windows Setup. Portable copies replace the running EXE and retain a backup alongside it. Settings and account connections are stored separately. **View release downloads** also opens the release page in your browser.
+Toolbox checks for updates at startup. A newer stable release shows an **Update now** / **Later** banner. Checks run in the background; an unavailable connection does not interrupt startup. **Update now** downloads the release, verifies its SHA-256 checksum, and restarts the app. You can also check manually in **Settings → Updates**. Installed copies upgrade through Windows Setup. Portable copies retain a backup alongside the EXE. Settings and connections are stored separately.
 
 ## WinOpt storage maintenance
 
 Open **WinOpt** from Home or the sidebar. It uses the same window and shared pink and light teal theme. Home's **Grid / List** switch sits beside the Apps heading and changes the app catalog layout.
 
-1. **Storage overview** shows ready local fixed drives and used/free capacity. SSD/HDD information appears only when Windows provides a reliable mapping; otherwise it says **Unknown**. **Open Optimize Drives** opens Windows' own tool for last-run status, drive-aware maintenance, elevation, progress and results. Windows already schedules optimization.
-2. **Temporary files → Scan only** creates a preview without deletion. Safe requires creation and modification more than 7 days ago; Standard requires more than 24 hours; Aggressive includes all otherwise eligible files. Windows Temp is optional and inaccessible entries are skipped. Exclude full paths, one per line. Unusual TEMP redirects into personal/project or general-purpose folders are refused.
-3. Review individual files and category estimates, then check the files you want. Nothing starts selected. **Dry run selected** rechecks eligibility without deletion. **Clean selected…** displays a confirmation with a permanent-deletion warning. Files do not go to the Recycle Bin and there is no undo. Close installers first; an old, unlocked file can still be useful.
-4. **Results & activity** reports deleted logical bytes, skips/failures and before/after free-space changes by volume. These measurements can differ because of compression, sparse files and concurrent disk activity. Cancellation reports completed work. A real cleanup consumes the preview; scan again to continue. Previews expire after 30 minutes, and changing scan settings invalidates them.
+1. **Storage** shows local drives and free/used space. **Temporary files** opens Cleanup.
+2. **Cleanup → Scan** previews user temporary files older than 7 days. Select files, then choose **Clean selected…** and confirm permanent deletion. Nothing starts selected. Close installers first; an old, unlocked file can still be useful.
+3. The list fits at least 10 rows. Drag its lower grip to resize it, or choose **Expand list** for a larger resizable window. Selections stay shared.
+4. **Results** shows the latest outcome. Completed operations leave a full progress bar. Cleanup consumes the preview; scan again to continue. Previews expire after 30 minutes.
+
+Turn on **Advanced mode** for cleanup modes, optional Windows Temp, exclusions, full paths, category/date columns, test runs, Windows tools, and activity details. Safe requires creation and modification more than 7 days ago; Standard requires more than 24 hours; Aggressive includes otherwise eligible files. Returning to simple mode restores Safe/user-temp scope and clears the preview while preserving exclusions. Advanced results distinguish deleted logical bytes from observed drive free-space changes. Changing scan policy invalidates the preview. Unusual TEMP redirects into personal/project or general-purpose folders are refused.
 
 WinOpt skips linked, changed, locked, protected and excluded files; it never recursively deletes directories. Its cleanup scope is temporary folders, with conservative installer/payload/project exclusions. It does not delete Downloads, Documents, browser profiles, Windows component-store files or Recycle Bin contents. Native Windows cleanup tools have their own scope and confirmation screens. No administrator prompt is requested by the hub.
 
@@ -111,6 +113,8 @@ Run WinOpt's dependency-free safety tests on Windows:
 All test deletion is confined to generated repository fixtures under `dist\WinOptTests\fixtures`. Native link tests require Windows hard-link/symlink support; restrictive execution sandboxes can block those fixture operations. No tests clean real user or Windows temporary directories or optimize drives.
 
 Run `.\Test-Sling.ps1` to check timesheet parsing, adjusted work hours, calendar and agenda colors, and past-day filtering using local fixtures.
+
+Run `.\Test-Updates.ps1` for startup checks, suggestions, dismissal, retry, offline handling, and banner layout using a simulated release service.
 
 ## Public website
 
