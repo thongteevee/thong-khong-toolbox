@@ -1,9 +1,9 @@
 THONG KHONG TOOLBOX USER AGREEMENT
-Effective November 17, 2026
+Effective November 19, 2026
 
 1. Agreement and scope
 
-This agreement covers the Thong Khong Toolbox Windows desktop app, including Sling Shift Auto Apply. By selecting "I accept the agreement" and continuing in Setup, you agree to these terms. If you decline, exit Setup. Review the separate Privacy Policy for information about accounts, data, and local storage.
+This agreement covers the Thong Khong Toolbox Windows desktop app, including Sling Shift Auto Apply and WinOpt. By selecting "I accept the agreement" and continuing in Setup, you agree to these terms. If you decline, exit Setup. Review the separate Privacy Policy for information about accounts, data, and local storage.
 
 2. Accounts and permission to use the app
 
@@ -15,15 +15,19 @@ Demo mode uses sample data and simulates submissions. In live mode, Preview matc
 
 Choosing Auto apply authorizes Toolbox to submit applications for the selected shifts to Sling. Check the reported outcomes and confirm questionable or uncertain results in Sling before retrying. Shift availability, calendar events, and assignments can change between preview and submission. Sling and your supervisor determine approval and assignments. Confirm your work schedule with Sling or your supervisor.
 
-4. Third-party services
+4. WinOpt storage maintenance
+
+Scan only and Dry run selected do not delete files. Review the preview before selecting files and confirming Clean selected. Confirmed cleanup permanently deletes eligible selected temporary files without using the Recycle Bin; there is no undo. Age and lack of a lock do not prove a file is unwanted. Close installers and keep important data backed up. Some files may be skipped or become unavailable; review the reported outcomes. Estimated candidate bytes and observed free-space changes can differ. WinOpt does not promise a performance improvement. Native Windows maintenance and diagnostic tools have their own scope, controls and approval prompts.
+
+5. Third-party services
 
 Google and Sling operate independently and govern their own services. Calendar availability depends on the calendars and events you choose, permissions you grant, and data those services return. Service outages, account restrictions, expired sessions, or API changes can interrupt Toolbox features. Use the original service to verify outcomes or manage applications after submission.
 
-5. Discontinuing use and uninstalling
+6. Discontinuing use and uninstalling
 
 You can stop using Toolbox, disconnect its saved accounts, or remove the installed app through Windows Settings. The uninstall leaves the Toolbox data folder in your Windows profile so you can use it again after reinstalling or in the portable EXE. The Privacy Policy explains how to remove that folder and revoke access at Google. Removing Toolbox or disconnecting an account does not cancel any applications already sent to Sling.
 
-6. Updates and support
+7. Updates and support
 
 See GitHub Releases for available versions and consult the agreement and privacy policy supplied with the version you install. Report general problems through the Toolbox repository's issue tracker. The tracker is public. Keep credentials, private schedules, and account identifiers out of reports.
 

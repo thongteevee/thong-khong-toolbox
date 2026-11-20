@@ -1,6 +1,6 @@
 # Thong Khong Toolbox
 
-Thong Khong Toolbox is a Windows desktop hub built in C# and WPF. Its first tool, **Sling Shift Auto Apply**, compares open Sling shifts with your Google Calendar and submits applications for the shifts you select.
+Thong Khong Toolbox is a Windows desktop hub built in C# and WPF. **Sling Shift Auto Apply** compares open Sling shifts with your Google Calendar and submits applications for the shifts you select. **WinOpt** previews temporary-file cleanup and connects you with Windows storage and performance diagnostics. Both tools run inside the same window.
 
 **[Download Windows installer](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolboxSetup.exe)** · **[Download portable EXE](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolbox.exe)** · [Release notes and checksums](https://github.com/thongteevee/thong-khong-toolbox/releases/latest)
 
@@ -22,6 +22,23 @@ Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable 
 ## Check for updates
 
 Open **Toolbox Settings → Updates** to see your current version and check for the latest stable GitHub release. When a newer version is available, choose **Update now** to download the release, verify its SHA-256 checksum, and restart into the updated app. Installed copies upgrade through Windows Setup. Portable copies replace the running EXE and retain a backup alongside it. Settings and account connections are stored separately. **View release downloads** also opens the release page in your browser.
+
+## WinOpt storage maintenance
+
+Open **WinOpt** from Home or the sidebar. It uses the same window and shared pink and light teal theme. Home's **Grid / List** switch sits beside the Apps heading and changes the app catalog layout.
+
+1. **Storage overview** shows ready local fixed drives and used/free capacity. SSD/HDD information appears only when Windows provides a reliable mapping; otherwise it says **Unknown**. **Open Optimize Drives** opens Windows' own tool for last-run status, drive-aware maintenance, elevation, progress and results. Windows already schedules optimization.
+2. **Temporary files → Scan only** creates a preview without deletion. Safe requires creation and modification more than 7 days ago; Standard requires more than 24 hours; Aggressive includes all otherwise eligible files. Windows Temp is optional and inaccessible entries are skipped. Exclude full paths, one per line. Unusual TEMP redirects into personal/project or general-purpose folders are refused.
+3. Review individual files and category estimates, then check the files you want. Nothing starts selected. **Dry run selected** rechecks eligibility without deletion. **Clean selected…** displays a confirmation with a permanent-deletion warning. Files do not go to the Recycle Bin and there is no undo. Close installers first; an old, unlocked file can still be useful.
+4. **Results & activity** reports deleted logical bytes, skips/failures and before/after free-space changes by volume. These measurements can differ because of compression, sparse files and concurrent disk activity. Cancellation reports completed work. A real cleanup consumes the preview; scan again to continue. Previews expire after 30 minutes, and changing scan settings invalidates them.
+
+WinOpt skips linked, changed, locked, protected and excluded files; it never recursively deletes directories. Its cleanup scope is temporary folders, with conservative installer/payload/project exclusions. It does not delete Downloads, Documents, browser profiles, Windows component-store files or Recycle Bin contents. Native Windows cleanup tools have their own scope and confirmation screens. No administrator prompt is requested by the hub.
+
+Use **Task Manager**, **Startup apps**, and **Installed apps** links to investigate responsiveness separately. WinOpt does not claim that deleting temporary files makes a PC faster. Scheduling, app-aware cache cleanup, in-app process/startup management, large-file analysis and duplicate discovery remain future work.
+
+Aggregate logs (without filenames) stay in `%LOCALAPPDATA%\ThongKhongToolbox\WinOpt\Logs`; approximately two 1 MiB files are retained. Scan choices and file previews are kept in memory for this session.
+
+The [reviewed implementation plan](specs/001-winopt/plan.md), [research comparison](docs/winopt-research.md), and [test plan / limitations](specs/001-winopt/test-plan.md) explain the choices and component flow. Official Spec Kit templates and workflow helpers are vendored under [.specify](.specify/README.md).
 
 ## Set up live mode
 
@@ -72,11 +89,22 @@ To build both release packages and their SHA-256 checksums, install [Inno Setup]
 |---|---|
 | `src/Hub` | WPF window, navigation, settings, and shared account connections |
 | `src/Features/Sling` | Schedule matching, submissions, calendar, and checklist |
+| `src/Features/WinOpt` | Temp-file policy, scanner, handle-based cleanup, Windows diagnostics and embedded view |
 | `src/Integrations/GoogleCalendar` | Google sign-in and Calendar requests |
 | `src/Common` | HTTP transport and encrypted local storage |
 | `installer` | Windows setup, User Agreement, and Privacy Policy |
 
 For a personal build with a preconfigured Google OAuth client, set `TOOLBOX_GOOGLE_CLIENT_ID` and `TOOLBOX_GOOGLE_CLIENT_SECRET` in the build environment. GitHub release builds let each user enter their own OAuth client details in Settings.
+
+Run WinOpt's dependency-free safety tests on Windows:
+
+```powershell
+.\Test-WinOpt.ps1
+# Optional read-only drive probe:
+.\Test-WinOpt.ps1 -ReadOnlyDriveProbe
+```
+
+All test deletion is confined to generated repository fixtures under `dist\WinOptTests\fixtures`. Native link tests require Windows hard-link/symlink support; restrictive execution sandboxes can block those fixture operations. No tests clean real user or Windows temporary directories or optimize drives.
 
 ## Public website
 

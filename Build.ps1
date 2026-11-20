@@ -32,7 +32,8 @@ $clientSecret = $env:TOOLBOX_GOOGLE_CLIENT_SECRET
 if ([string]::IsNullOrWhiteSpace($clientId) -ne [string]::IsNullOrWhiteSpace($clientSecret)) {
     throw 'Set both Toolbox Google client environment variables or leave both empty.'
 }
-$resources = @("/resource:$layout,Toolbox.xaml", "/resource:$icon,Toolbox.ico")
+$winOptLayout = Join-Path $sourceRoot 'Features\WinOpt\Views\WinOpt.xaml'
+$resources = @("/resource:$layout,Toolbox.xaml", "/resource:$icon,Toolbox.ico", "/resource:$winOptLayout,WinOpt.xaml")
 $mikuPicture = Join-Path $project 'assets\miku\original-miku.jpg'
 $resources += "/resource:$mikuPicture,Miku.original-miku.jpg"
 $oauthResource = $null

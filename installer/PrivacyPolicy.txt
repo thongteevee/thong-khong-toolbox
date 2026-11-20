@@ -1,5 +1,5 @@
 THONG KHONG TOOLBOX PRIVACY POLICY
-Effective November 17, 2026
+Effective November 19, 2026
 
 1. Scope
 
@@ -25,6 +25,8 @@ Toolbox sends Sling account and shift information directly to Sling. Google Cale
 Toolbox saves the Google client configuration and refresh token and the Sling session and account details under %LOCALAPPDATA%\ThongKhongToolbox\accounts.dpapi. Windows Data Protection API encrypts this file for your Windows user. Google access tokens are used in memory.
 
 The same folder contains Sling\settings.json and Sling\applications.json. These local JSON files store preferences and calendar filters, and record Sling shift information and application outcomes to track submissions and avoid duplicates. The JSON files are outside the encrypted credential vault. The portable and installed versions use the same data folder within a Windows profile.
+
+WinOpt reads local drive capacity, available media information and metadata for files in approved temporary folders. File paths, exclusions and cleanup previews are processed in memory for the current session. Only files you select and confirm are eligible for permanent deletion. WinOpt saves aggregate scan, dry-run and cleanup records under %LOCALAPPDATA%\ThongKhongToolbox\WinOpt\Logs: UTC timestamps, counts, logical byte totals, cancellation and reason/error codes. These logs do not contain candidate filenames. Approximately two 1 MiB log files are retained. WinOpt does not upload scan results or maintenance logs. Windows storage and diagnostic links open separate Windows tools with their own controls.
 
 5. Sharing and service providers
 

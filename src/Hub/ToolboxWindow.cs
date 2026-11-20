@@ -21,7 +21,8 @@ namespace Toolbox
         private bool googleConnected;
         private bool slingConnected;
         private readonly HubAccounts accounts;
-        private static readonly string[] HubViews = { "Home", "Sling", "Settings" };
+        private WinOpt.WinOptView winOptView;
+        private static readonly string[] HubViews = { "Home", "Sling", "WinOpt", "Settings" };
 
         internal ToolboxWindow(double? textScale = null, HubAccounts accountStore = null)
         {
@@ -79,20 +80,18 @@ namespace Toolbox
             var apps = Get<ItemsControl>("AppCatalog");
             apps.ItemsSource = new[] {
                 new { Name = "Sling Shift Auto Apply", Detail = "Preview and apply for shifts around your calendar.",
-                    Icon = "\uE787", Page = "Sling" }
+                    Icon = "\uE787", Open = new ToolCommand(() => Get<RadioButton>("SlingNav").IsChecked = true) },
+                new { Name = "WinOpt", Detail = "Review temporary files and maintain Windows storage.",
+                    Icon = "\uEDA2", Open = new ToolCommand(() => Get<RadioButton>("WinOptNav").IsChecked = true) }
             };
-            apps.AddHandler(Button.ClickEvent, new RoutedEventHandler(delegate(object sender, RoutedEventArgs args)
-            {
-                var button = args.OriginalSource as Button;
-                var page = button == null ? null : button.Tag as string;
-                if (page != null) Get<RadioButton>(page + "Nav").IsChecked = true;
-            }));
             Get<Button>("OpenSettings").Click += delegate { Get<RadioButton>("SettingsNav").IsChecked = true; };
             WireSlingActions();
             WireSettings();
             UpdateConnectionLabels();
             Closing += delegate(object sender, CancelEventArgs args)
             {
+                if (winOptView != null && winOptView.IsWorking)
+                { args.Cancel = true; winOptView.CancelOperation(); Get<RadioButton>("WinOptNav").IsChecked = true; return; }
                 if (busy) { args.Cancel = true; SetStatus("Wait for the current operation to finish."); }
             };
             ResetReport();
@@ -120,7 +119,6 @@ namespace Toolbox
             width -= railWidth;
             root.Resources["FieldMaxWidth"] = Math.Max(120, width - 106);
             root.Resources["AppTileSize"] = Math.Min(168, Math.Max(100, width - 78));
-            root.Resources["AppViewRow"] = width < 265 ? 1 : 0;
             AdaptSlingLayout(width);
         }
 
@@ -128,6 +126,14 @@ namespace Toolbox
 
         private void ShowHubPage(string active)
         {
+            if (active == "WinOpt" && winOptView == null)
+            {
+                winOptView = new WinOpt.WinOptView();
+                Get<ContentControl>("WinOptPage").Content = winOptView;
+            }
+            root.MinHeight = active == "WinOpt" ? 680 : 0;
+            Get<FrameworkElement>("WinOptPage").Visibility = active == "WinOpt" ? Visibility.Visible : Visibility.Collapsed;
+            Get<FrameworkElement>("Status").Visibility = active == "WinOpt" ? Visibility.Collapsed : Visibility.Visible;
             var sling = active == "Sling";
             Get<FrameworkElement>("HomePage").Visibility = active == "Home" ? Visibility.Visible : Visibility.Collapsed;
             Get<FrameworkElement>("SettingsPage").Visibility = active == "Settings" ? Visibility.Visible : Visibility.Collapsed;

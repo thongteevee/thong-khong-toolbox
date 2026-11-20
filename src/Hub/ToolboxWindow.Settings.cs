@@ -140,6 +140,11 @@ namespace Toolbox
             install.Click += async delegate
             {
                 if (busy) return;
+                if (winOptView != null && winOptView.IsWorking)
+                {
+                    status.Text = "Wait for WinOpt to finish before updating Toolbox.";
+                    return;
+                }
                 var ready = false;
                 await Operation("Downloading the Toolbox update…", async delegate
                 {
