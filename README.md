@@ -69,6 +69,8 @@ Toolbox uses the Sling password only to establish a session. Windows encrypts th
 
 Submitted applications appear as **Applied** on the calendar and as read-only rows in Results. Once Sling assigns the shift, the calendar shows it as booked. Toolbox tracks applications to prevent duplicate submissions. Calendar commitments and assigned shifts can block an application. See the [Sling tool guide](auto-sling-shift-apply/README.md) for the sample schedule and run behavior.
 
+The calendar uses yellow for **Applied**, blue for **Approved** shifts, gray for completed **Worked** time, and green for **Time approved**. Worked and approved time come from your Sling timesheet. Their blocks use the recorded clock-in and clock-out times, and the event details also show the scheduled times. Past days show only recorded work. If Sling cannot return timesheet status, the app reports that some work history could not be loaded. Display-only timesheets load after shift submissions, with up to three requests at once and an eight-second total timeout.
+
 ## Build from source
 
 From the repository root, run the following in PowerShell on Windows with the .NET Framework 4.x compiler available.
@@ -84,6 +86,8 @@ To build both release packages and their SHA-256 checksums, install [Inno Setup]
 ```powershell
 .\Build-Release.ps1 -Version 0.1.2
 ```
+
+Every release must be published to GitHub with its matching version tag, portable EXE, installer, and `SHA256SUMS.txt`. A local build alone is not a completed release. Verify the published assets before reporting that a version is available.
 
 | Folder | Contents |
 |---|---|
@@ -105,6 +109,8 @@ Run WinOpt's dependency-free safety tests on Windows:
 ```
 
 All test deletion is confined to generated repository fixtures under `dist\WinOptTests\fixtures`. Native link tests require Windows hard-link/symlink support; restrictive execution sandboxes can block those fixture operations. No tests clean real user or Windows temporary directories or optimize drives.
+
+Run `.\Test-Sling.ps1` to check timesheet parsing, adjusted work hours, calendar and agenda colors, and past-day filtering using local fixtures.
 
 ## Public website
 

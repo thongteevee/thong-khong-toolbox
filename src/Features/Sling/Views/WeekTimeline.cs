@@ -15,9 +15,9 @@ namespace Toolbox
         private static Brush Muted = Brush("#52647D");
         private static Brush GridLine = Brush("#E0E8F3");
         private static Brush Heading = Brush("#F0F4FA");
-        private static readonly string[] CategoryLabels = { "Calendar events", "Booked shifts", "Available shifts", "Applied", "Needs confirmation" };
-        private static readonly Brush[] Fills = { Brush("#E3EDFE"), Brush("#F0E7FA"), Brush("#E2F4EA"), Brush("#DDF2F4"), Brush("#FFF0CF") };
-        private static readonly Brush[] Colors = { Brush("#24539B"), Brush("#6A3D97"), Brush("#16654B"), Brush("#17606A"), Brush("#784C14") };
+        private static readonly string[] CategoryLabels = { "Calendar events", "Approved", "Available shifts", "Applied", "Worked", "Time approved", "Needs confirmation" };
+        private static readonly Brush[] Fills = { Brush("#FCE1EE"), Brush("#E3EDFE"), Brush("#F0E7FA"), Brush("#FFF0CF"), Brush("#E6E9EE"), Brush("#E2F4EA"), Brush("#FFF0E5") };
+        private static readonly Brush[] Colors = { Brush("#96275D"), Brush("#24539B"), Brush("#6A3D97"), Brush("#845B0D"), Brush("#535D6B"), Brush("#16654B"), Brush("#954D20") };
         private const double HourHeight = 36;
         private const double MinimumCalendarWidth = 950;
         private readonly ContentControl host;
@@ -38,8 +38,8 @@ namespace Toolbox
             Muted = Brush(enabled ? "#52696F" : "#52647D");
             GridLine = Brush(enabled ? "#EED0DF" : "#E0E8F3");
             Heading = Brush(enabled ? "#E3F5F2" : "#F0F4FA");
-            Fills[0] = Brush(enabled ? "#FCE1EE" : "#E3EDFE");
-            Colors[0] = Brush(enabled ? "#96275D" : "#24539B");
+            Fills[0] = Brush(enabled ? "#FCE1EE" : "#F7E8EE");
+            Colors[0] = Brush(enabled ? "#96275D" : "#86465F");
         }
 
         private void BuildLegend()
@@ -75,11 +75,15 @@ namespace Toolbox
             BuildLegend();
             var from = Planner.At(monday, TimeSpan.Zero);
             var until = Planner.At(monday.AddDays(7), TimeSpan.Zero);
+            var today = Planner.Local(DateTimeOffset.UtcNow).Date;
+            var todayStart = Planner.At(today, TimeSpan.Zero);
             var entries = report == null ? new List<Slot>() : report.Calendar.Concat(report.Shifts.Where(shift => shift.Kind == "Available" &&
                 (!results || report.Results.Any(row => (row.Status == "Eligible" || row.Status == "Needs confirmation") && ReferenceEquals(row.Shift, shift))) &&
                 !report.Calendar.Any(slot => (slot.Kind == "Pending" && Planner.SameOffer(shift, slot)) ||
                     (slot.Kind == "Booked" && (Planner.SameOffer(shift, slot) || Planner.SameShift(shift, slot))))))
-                .Where(slot => slot.Start < until && slot.End > from).ToList();
+                .SelectMany(slot => slot.Kind == "Booked" && slot.WorkPeriods != null && slot.WorkPeriods.Count > 0
+                    ? (IEnumerable<Slot>)slot.WorkPeriods.Select(slot.ForWorkPeriod) : new[] { slot })
+                .Where(slot => slot.Start < until && slot.End > from && (slot.Kind == "Booked" || slot.End > todayStart)).ToList();
             legend.Visibility = agenda ? Visibility.Collapsed : Visibility.Visible;
             if (entries.Count == 0 && (!results || report == null))
             {
@@ -88,16 +92,16 @@ namespace Toolbox
                 return;
             }
 
-            host.Content = agenda ? Agenda(monday, entries, report) : Calendar(monday, entries, report, results);
+            host.Content = agenda ? Agenda(monday, entries, report, today) : Calendar(monday, entries, report, results, today);
         }
 
-        private static FrameworkElement Agenda(DateTime monday, List<Slot> entries, RunReport report)
+        private static FrameworkElement Agenda(DateTime monday, List<Slot> entries, RunReport report, DateTime today)
         {
             var stack = new StackPanel { Margin = new Thickness(14, 0, 12, 10) };
             for (var day = 0; day < 7; day++)
             {
                 var date = monday.AddDays(day);
-                var slots = Day(entries, date).OrderBy(slot => slot.Start).ThenBy(slot => slot.End).ToList();
+                var slots = Day(entries, date, today).OrderBy(slot => slot.Start).ThenBy(slot => slot.End).ToList();
                 if (slots.Count == 0) continue;
                 var group = Text(date.ToString("dddd, MMMM d", CultureInfo.CurrentCulture), 15, Ink, true);
                 group.Margin = new Thickness(0, 12, 0, 6);
@@ -110,6 +114,10 @@ namespace Toolbox
                     var detail = Text(TimeRange(slot) + " · " + KindLabel(slot), 13, Colors[kind]);
                     detail.Margin = new Thickness(0, 3, 0, 0);
                     content.Children.Add(detail);
+                    if (slot.ScheduledShift != null)
+                        content.Children.Add(Text("Scheduled · " + TimeRange(slot.ScheduledShift), 12, Muted));
+                    if (slot.TimesheetUnavailable)
+                        content.Children.Add(Text("Timesheet status unavailable", 12, Muted));
                     var decision = DecisionFor(report, slot);
                     if (decision != null) content.Children.Add(Text(slot.Kind == "Pending" ? decision.Reason :
                         decision.Status + " · " + decision.Reason, 13, Muted));
@@ -120,7 +128,7 @@ namespace Toolbox
             return new ScrollViewer { Content = stack, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         }
 
-        private static FrameworkElement Calendar(DateTime monday, List<Slot> entries, RunReport report, bool results)
+        private static FrameworkElement Calendar(DateTime monday, List<Slot> entries, RunReport report, bool results, DateTime today)
         {
             var minimumWidth = results ? 560 : MinimumCalendarWidth;
             var grid = new Grid { MinWidth = minimumWidth, Background = Brushes.White };
@@ -149,7 +157,7 @@ namespace Toolbox
             for (var day = 0; day < 7; day++)
             {
                 var date = monday.AddDays(day);
-                var rows = Day(entries, date).ToList();
+                var rows = Day(entries, date, today).ToList();
                 var label = Text(date.ToString("ddd d"), 14, Ink, true);
                 label.TextAlignment = TextAlignment.Center;
                 Cell(grid, 0, day + 1, label, Heading, new Thickness(2, 8, 2, 8));
@@ -230,7 +238,7 @@ namespace Toolbox
         private static Button SlotButton(Slot slot, RunReport report, Action<Slot> select, double? height = null)
         {
             var decision = DecisionFor(report, slot);
-            var category = decision != null && decision.Status == "Needs confirmation" ? 4 : Category(slot);
+            var category = decision != null && decision.Status == "Needs confirmation" ? 6 : Category(slot);
             var body = new StackPanel();
             var name = Text(slot.Name, 12, Colors[category], true);
             if (height.HasValue)
@@ -244,7 +252,7 @@ namespace Toolbox
             body.Children.Add(name);
             if (height >= 39)
             {
-                var caption = slot.Kind == "Pending" ? "Applied" : decision == null ? Planner.Local(slot.Start).ToString("h:mm tt") :
+                var caption = slot.Kind == "Pending" || slot.Kind == "Booked" ? KindLabel(slot) : decision == null ? Planner.Local(slot.Start).ToString("h:mm tt") :
                     decision.Status == "Eligible" ? "Can apply" : decision.Status;
                 var time = Text(caption, 11, Colors[category]);
                 time.TextWrapping = TextWrapping.NoWrap;
@@ -268,6 +276,9 @@ namespace Toolbox
             var time = Planner.Local(slot.Start).ToString("dddd, MMM d, yyyy") + " · " + TimeRange(slot);
             if (!IsAllDay(slot)) time += " ET";
             var lines = new List<string> { slot.Name, time };
+            if (slot.ScheduledShift != null) lines.Add("Scheduled · " + TimeRange(slot.ScheduledShift) + " ET");
+            if (slot.PaidMinutes.HasValue) lines.Add("Paid time · " + (slot.PaidMinutes.Value / 60).ToString("0.##", CultureInfo.CurrentCulture) + " hours");
+            if (slot.TimesheetUnavailable) lines.Add("Timesheet status unavailable");
             if (!String.IsNullOrWhiteSpace(slot.PositionName)) lines.Add("Role · " + slot.PositionName);
             if (!String.IsNullOrWhiteSpace(slot.LocationName)) lines.Add("Location · " + slot.LocationName);
             lines.Add(slot.Kind == "Pending" || decision == null ? KindLabel(slot) : decision.Status == "Eligible" ? "Can apply" : decision.Status);
@@ -283,18 +294,22 @@ namespace Toolbox
                 (ReferenceEquals(row.Shift, slot) || Planner.SameOffer(row.Shift, slot)));
         }
 
-        private static IEnumerable<Slot> Day(List<Slot> entries, DateTime date)
+        private static IEnumerable<Slot> Day(List<Slot> entries, DateTime date, DateTime today)
         {
             var first = Planner.At(date, TimeSpan.Zero);
             var last = Planner.At(date.AddDays(1), TimeSpan.Zero);
-            return entries.Where(slot => slot.Start < last && slot.End > first);
+            return entries.Where(slot => slot.Start < last && slot.End > first && (date >= today || slot.ScheduledShift != null));
         }
 
         private static bool IsAllDay(Slot slot) { return slot.Kind == "All day" || slot.Kind == "Sling closure"; }
 
-        private static int Category(Slot slot) { return slot.Kind == "Booked" ? 1 : slot.Kind == "Available" ? 2 : slot.Kind == "Pending" ? 3 : 0; }
+        private static int Category(Slot slot)
+        {
+            if (slot.Kind == "Booked") return slot.WorkStatus == "Time approved" ? 5 : slot.WorkStatus == "Worked" ? 4 : 1;
+            return slot.Kind == "Available" ? 2 : slot.Kind == "Pending" ? 3 : 0;
+        }
 
-        private static string KindLabel(Slot slot) { return slot.Kind == "Sling closure" ? "Sling closure" : new[] { "Calendar event", "Booked shift", "Available shift", "Applied" }[Category(slot)]; }
+        private static string KindLabel(Slot slot) { return slot.Kind == "Sling closure" ? "Sling closure" : CategoryLabels[Category(slot)]; }
 
         private static TextBlock Text(string value, double size, Brush color, bool heading = false)
         {

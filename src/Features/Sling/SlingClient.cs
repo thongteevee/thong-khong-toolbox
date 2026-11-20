@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Toolbox
@@ -21,10 +22,13 @@ namespace Toolbox
         private const string SlingRoot = "https://api.getsling.com/v1/";
         private readonly SlingConnection account;
         private readonly Lazy<Task<Dictionary<string, string>>> groupNames;
+        private readonly Func<string, string, CancellationToken, Task<object>> read;
+        internal bool TimesheetsUnavailable { get; private set; }
 
-        internal SlingClient(SlingConnection connection)
+        internal SlingClient(SlingConnection connection, Func<string, string, CancellationToken, Task<object>> read = null)
         {
             account = connection;
+            this.read = read;
             groupNames = new Lazy<Task<Dictionary<string, string>>>(LoadGroupNames);
         }
 
@@ -90,9 +94,10 @@ namespace Toolbox
                 Display = (label.Length == 0 ? "Organization " + orgId : label) + " / employee " + userId };
         }
 
-        private async Task<object> Get(string path, string operation)
+        private async Task<object> Get(string path, string operation, CancellationToken cancellationToken = default(CancellationToken))
         {
-            using (var response = await Api.Send(SlingRoot + path, HttpMethod.Get, account.Token).ConfigureAwait(false))
+            if (read != null) return await read(path, operation, cancellationToken).ConfigureAwait(false);
+            using (var response = await Api.Send(SlingRoot + path, HttpMethod.Get, account.Token, cancellationToken: cancellationToken).ConfigureAwait(false))
                 return await Api.Json(response, operation).ConfigureAwait(false);
         }
 
@@ -128,6 +133,69 @@ namespace Toolbox
             var url = "calendar/" + account.Org + "/users/" + account.User + "?" + Api.Query("dates", from.ToString("o") + "/" + to.ToString("o"), "skipUnscheduled", "true", "showPlanningEvents", "false");
             var result = await Get(url, "Sling personal schedule").ConfigureAwait(false);
             return ParseSchedule(result, account.User, await groupNames.Value.ConfigureAwait(false));
+        }
+
+        // Display-only data is fetched after eligibility checks and any shift submissions.
+        internal async Task EnrichTimesheets(IEnumerable<Slot> schedule, TimeSpan? timeout = null)
+        {
+            TimesheetsUnavailable = false;
+            var historical = schedule.Where(slot => slot.Kind == "Booked" && slot.Start <= DateTimeOffset.UtcNow).ToList();
+            using (var cancellation = new CancellationTokenSource())
+            using (var gate = new SemaphoreSlim(3))
+            {
+                cancellation.CancelAfter(timeout ?? TimeSpan.FromSeconds(8));
+                await Task.WhenAll(historical.Select(async shift =>
+                {
+                    var entered = false;
+                    shift.WorkPeriods = null;
+                    shift.TimesheetUnavailable = false;
+                    try
+                    {
+                        await gate.WaitAsync(cancellation.Token).ConfigureAwait(false);
+                        entered = true;
+                        var details = await Get("timesheets/event/" + Uri.EscapeDataString(shift.Id) + "/" + account.User,
+                            "Sling timesheet", cancellation.Token).ConfigureAwait(false);
+                        shift.WorkPeriods = ParseWorkPeriods(details, shift, account.User);
+                    }
+                    catch (InvalidOperationException) { shift.TimesheetUnavailable = true; }
+                    catch (HttpRequestException) { shift.TimesheetUnavailable = true; }
+                    catch (OperationCanceledException) { shift.TimesheetUnavailable = true; }
+                    finally { if (entered) gate.Release(); }
+                })).ConfigureAwait(false);
+            }
+            TimesheetsUnavailable = historical.Any(shift => shift.TimesheetUnavailable);
+        }
+
+        internal static List<WorkPeriod> ParseWorkPeriods(object document, Slot shift, string employee)
+        {
+            var data = Api.Pick(document, "event") ?? document;
+            var identifier = Api.Text(data, "id");
+            if (identifier != shift.Id) throw new InvalidOperationException("Sling returned a timesheet for a different shift.");
+            var projections = Api.Pick(data, "timesheetProjections") as object[];
+            if (projections == null) throw new InvalidOperationException("Sling did not return timesheet status.");
+            var periods = new List<WorkPeriod>();
+            foreach (var item in projections)
+            {
+                if (Api.Flag(item, "deleted")) continue;
+                var user = Api.PositiveId(Api.Text(Api.Pick(item, "user"), "id")) ?? Api.PositiveId(Api.Text(item, "userId"));
+                if (user != employee) continue;
+                var eventId = Api.Text(Api.Pick(item, "event"), "id");
+                if (eventId.Length > 0 && eventId != shift.Id) continue;
+                var status = Api.Text(item, "status");
+                if (new[] { "cancelled", "canceled", "deleted", "rejected", "denied", "void" }.Contains(status, StringComparer.OrdinalIgnoreCase)) continue;
+                DateTimeOffset start, end;
+                if (String.IsNullOrWhiteSpace(Api.Text(item, "clockOut"))) continue;
+                if (!DateTimeOffset.TryParse(Api.Text(item, "clockIn"), CultureInfo.InvariantCulture, DateTimeStyles.None, out start) ||
+                    !DateTimeOffset.TryParse(Api.Text(item, "clockOut"), CultureInfo.InvariantCulture, DateTimeStyles.None, out end) || end <= start)
+                    throw new InvalidOperationException("Sling returned unreadable timesheet times.");
+                var rawMinutes = Api.Pick(item, "paidMinutes");
+                double paid;
+                var paidMinutes = rawMinutes != null && Double.TryParse(Convert.ToString(rawMinutes, CultureInfo.InvariantCulture),
+                    NumberStyles.Float, CultureInfo.InvariantCulture, out paid) && paid >= 0 && !Double.IsInfinity(paid) && !Double.IsNaN(paid) ? (double?)paid : null;
+                periods.Add(new WorkPeriod { Start = start, End = end, Approved = String.Equals(status, "approved", StringComparison.OrdinalIgnoreCase), PaidMinutes = paidMinutes });
+            }
+            return periods.GroupBy(period => new { period.Start, period.End }).Select(group => group.OrderByDescending(period => period.Approved).First())
+                .OrderBy(period => period.Start).ToList();
         }
 
         internal static List<Slot> ParseSchedule(object data, string employee, IDictionary<string, string> names = null)

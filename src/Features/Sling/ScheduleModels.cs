@@ -43,10 +43,34 @@ namespace Toolbox
         public string Notes { get; set; }
         public bool OpenEnd { get; set; }
         internal bool ApplicationListKnown { get; set; }
+        internal List<WorkPeriod> WorkPeriods { get; set; }
+        internal bool TimesheetUnavailable { get; set; }
+        internal Slot ScheduledShift { get; private set; }
+        internal string WorkStatus { get; private set; }
+        internal double? PaidMinutes { get; private set; }
         [ScriptIgnore] public DateTimeOffset Start { get; set; }
         [ScriptIgnore] public DateTimeOffset End { get; set; }
         public string StartIso { get { return Start.ToString("o"); } set { Start = DateTimeOffset.Parse(value, CultureInfo.InvariantCulture); } }
         public string EndIso { get { return End.ToString("o"); } set { End = DateTimeOffset.Parse(value, CultureInfo.InvariantCulture); } }
+
+        internal Slot ForWorkPeriod(WorkPeriod period)
+        {
+            var display = (Slot)MemberwiseClone();
+            display.ScheduledShift = this;
+            display.Start = period.Start;
+            display.End = period.End;
+            display.WorkStatus = period.Approved ? "Time approved" : "Worked";
+            display.PaidMinutes = period.PaidMinutes;
+            return display;
+        }
+    }
+
+    internal sealed class WorkPeriod
+    {
+        internal DateTimeOffset Start;
+        internal DateTimeOffset End;
+        internal bool Approved;
+        internal double? PaidMinutes;
     }
 
     public sealed class Entry

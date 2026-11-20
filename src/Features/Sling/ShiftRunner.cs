@@ -43,6 +43,8 @@ namespace Toolbox
                 entry.Shift.Start < until && entry.Shift.End > from).ToList();
             await RecheckPriorApplications(report, sling.Key, previous, sling.CheckApplication);
             AddAppliedShifts(report, previous.Where(entry => entry.State == "Submitted").Select(entry => entry.Shift));
+            await sling.EnrichTimesheets(report.Calendar);
+            if (sling.TimesheetsUnavailable) report.Note = "Schedule loaded. Some timesheet statuses could not be read from Sling.";
             return report;
         }
 
@@ -125,6 +127,10 @@ namespace Toolbox
                     report.Note = "Submissions were recorded. Sling could not refresh assignment status.";
                 }
             }
+            progress("Loading recorded work times…");
+            await sling.EnrichTimesheets(report.Calendar);
+            if (sling.TimesheetsUnavailable)
+                report.Note = (report.Note == null ? "" : report.Note + " ") + "Some timesheet statuses could not be read from Sling.";
             return report;
         }
 

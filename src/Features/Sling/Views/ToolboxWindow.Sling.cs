@@ -154,7 +154,7 @@ namespace Toolbox
                 weekReport = await ShiftRunner.ReadWeek(settings, accounts, monday, demoJournal);
                 loadedMonday = monday;
                 UpdateWeek();
-                SetStatus("Weekly schedule loaded.");
+                SetStatus(weekReport.Note ?? "Weekly schedule loaded.");
             });
         }
 
@@ -218,7 +218,7 @@ namespace Toolbox
                     if (uncertain > 0) status += " · " + uncertain + " need verification";
                     SetStatus(status + (report.Note == null ? "." : ". " + report.Note));
                 }
-                else SetStatus("Check the shifts you want Auto Apply to submit.");
+                else SetStatus("Check the shifts you want Auto Apply to submit." + (report.Note == null ? "" : " " + report.Note));
             });
         }
 
