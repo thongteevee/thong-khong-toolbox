@@ -37,6 +37,25 @@ namespace Toolbox
             return File.Exists(path) ? Json().Deserialize<T>(File.ReadAllText(path)) : fallback;
         }
 
+        // True for files that exist but cannot be decrypted or parsed (damaged, edited,
+        // or protected for another Windows user or PC).
+        internal static bool Unreadable(Exception exception)
+        {
+            return exception is CryptographicException || exception is ArgumentException ||
+                exception is InvalidOperationException || exception is FormatException;
+        }
+
+        // Keep an unreadable file for inspection instead of deleting it, so startup can continue.
+        internal static void SetAside(string path)
+        {
+            var aside = path + ".unreadable-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            try { File.Move(path, aside); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        internal static string SettingsPath(string name) { return Path.Combine(Folder, name + ".json"); }
+
         internal static void SaveSecret<T>(string path, T value)
         {
             var bytes = Encoding.UTF8.GetBytes(Json().Serialize(value));

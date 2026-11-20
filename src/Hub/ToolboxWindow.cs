@@ -30,7 +30,15 @@ namespace Toolbox
         {
             latestRelease = releaseLookup ?? ToolboxReleases.GetLatestVersion;
             accounts = accountStore ?? new HubAccounts(LocalData.ToolboxFolder);
-            settings = LocalData.Load("settings", new Settings());
+            string startupNotice = accounts.Notice;
+            try { settings = LocalData.Load("settings", new Settings()); }
+            catch (Exception exception)
+            {
+                if (!LocalData.Unreadable(exception)) throw;
+                LocalData.SetAside(LocalData.SettingsPath("settings"));
+                settings = new Settings();
+                startupNotice = "Saved Sling settings could not be read and were set aside. Choose your calendars and rules again.";
+            }
             if (settings.Version < Settings.CurrentVersion)
             {
                 settings.Demo = false;
@@ -93,6 +101,7 @@ namespace Toolbox
             };
             ResetReport();
             ShowHubPage("Home");
+            if (startupNotice != null) SetStatus(startupNotice);
         }
 
         private static double WindowsTextScale()

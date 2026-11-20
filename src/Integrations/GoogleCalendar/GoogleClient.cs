@@ -105,22 +105,13 @@ namespace Toolbox
                         throw new InvalidOperationException("Google sign-in timed out. Connect again when ready.");
                     using (var client = await connection.ConfigureAwait(false))
                     {
-                        client.ReceiveTimeout = 4000;
-                        client.SendTimeout = 4000;
-                        using (var stream = client.GetStream())
-                        {
-                            var target = await Task.Run(() => ReadRequestTarget(stream)).ConfigureAwait(false);
-                            var query = HttpUtility.ParseQueryString(target == null ? "" : new Uri(redirect + target.TrimStart('/')).Query);
-                            var valid = String.Equals(query["state"], state, StringComparison.Ordinal);
-                            code = valid ? query["code"] : null;
-                            var text = code != null ? "Google authorization received. Return to Thong Khong Toolbox."
-                                : "Authorization was not completed. Return to Thong Khong Toolbox.";
-                            var response = Encoding.UTF8.GetBytes(text);
-                            var header = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + response.Length + "\r\n\r\n");
-                            await stream.WriteAsync(header, 0, header.Length).ConfigureAwait(false);
-                            await stream.WriteAsync(response, 0, response.Length).ConfigureAwait(false);
-                            if (valid && code == null) throw new InvalidOperationException("Google sign-in was declined or returned no authorization code.");
-                        }
+                        // Browsers may open spare or idle sockets to the redirect address. Ignore any
+                        // connection that does not deliver a readable request and keep waiting.
+                        var received = await ReceiveRedirect(client, redirect, state).ConfigureAwait(false);
+                        if (received == null) continue;
+                        if (received.Item1 && received.Item2 == null)
+                            throw new InvalidOperationException("Google sign-in was declined or returned no authorization code.");
+                        code = received.Item2;
                     }
                 }
                 var google = new GoogleClient(credential);
@@ -134,6 +125,42 @@ namespace Toolbox
                 return credential;
             }
             finally { listener.Stop(); }
+        }
+
+        // Returns null for a connection to ignore; otherwise (state matched, authorization code or null).
+        internal static async Task<Tuple<bool, string>> ReceiveRedirect(TcpClient client, string redirect, string state)
+        {
+            client.ReceiveTimeout = 4000;
+            client.SendTimeout = 4000;
+            NetworkStream stream;
+            string target;
+            try
+            {
+                stream = client.GetStream();
+                target = await Task.Run(() => ReadRequestTarget(stream)).ConfigureAwait(false);
+            }
+            catch (IOException) { return null; }
+            catch (ObjectDisposedException) { return null; }
+            catch (InvalidOperationException) { return null; }
+            if (target == null) return null;
+
+            System.Collections.Specialized.NameValueCollection query;
+            try { query = HttpUtility.ParseQueryString(new Uri(redirect + target.TrimStart('/')).Query); }
+            catch (UriFormatException) { query = new System.Collections.Specialized.NameValueCollection(); }
+            var valid = String.Equals(query["state"], state, StringComparison.Ordinal);
+            var code = valid ? query["code"] : null;
+            var text = code != null ? "Google authorization received. Return to Thong Khong Toolbox."
+                : "Authorization was not completed. Return to Thong Khong Toolbox.";
+            var response = Encoding.UTF8.GetBytes(text);
+            var header = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + response.Length + "\r\n\r\n");
+            try
+            {
+                await stream.WriteAsync(header, 0, header.Length).ConfigureAwait(false);
+                await stream.WriteAsync(response, 0, response.Length).ConfigureAwait(false);
+            }
+            catch (IOException) { /* The browser closed the tab; the authorization code is still valid. */ }
+            catch (ObjectDisposedException) { }
+            return Tuple.Create(valid, code);
         }
 
         private static string ReadRequestTarget(Stream stream)

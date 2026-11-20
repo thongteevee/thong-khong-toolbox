@@ -15,16 +15,19 @@ namespace Toolbox
             public SlingConnection Sling { get; set; }
         }
 
+        // Set when a saved connection file could not be read and was moved aside.
+        internal string Notice { get; private set; }
+
         internal HubAccounts(string folder)
         {
             path = Path.Combine(folder, "accounts.dpapi");
-            current = LocalData.LoadSecret<Connections>(path);
+            current = TryLoad<Connections>(path);
             if (current != null) return;
 
             var legacy = Path.Combine(folder, "Sling");
-            var google = LocalData.LoadSecret<GoogleCredential>(Path.Combine(legacy, "google.dpapi"));
-            var client = LocalData.LoadSecret<GoogleCredential>(Path.Combine(legacy, "google-client.dpapi"));
-            var sling = LocalData.LoadSecret<SlingConnection>(Path.Combine(legacy, "sling.dpapi"));
+            var google = TryLoad<GoogleCredential>(Path.Combine(legacy, "google.dpapi"));
+            var client = TryLoad<GoogleCredential>(Path.Combine(legacy, "google-client.dpapi"));
+            var sling = TryLoad<SlingConnection>(Path.Combine(legacy, "sling.dpapi"));
             current = new Connections();
             if (GoogleClient.IsClient(google) && !String.IsNullOrEmpty(google.RefreshToken))
             {
@@ -33,6 +36,18 @@ namespace Toolbox
             else if (GoogleClient.IsClient(client) || sling != null)
             {
                 Save(GoogleClient.IsClient(client) ? Registration(client) : null, null, sling);
+            }
+        }
+
+        private T TryLoad<T>(string file) where T : class
+        {
+            try { return LocalData.LoadSecret<T>(file); }
+            catch (Exception exception)
+            {
+                if (!LocalData.Unreadable(exception)) throw;
+                LocalData.SetAside(file);
+                Notice = "Saved account connections could not be read on this Windows user and were set aside. Reconnect Google and Sling in Settings.";
+                return null;
             }
         }
 

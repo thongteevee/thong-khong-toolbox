@@ -20,6 +20,7 @@ namespace Toolbox.Tests
             try
             {
                 NavigationChecks.Run();
+                RobustnessChecks.Run();
                 var calls = 0;
                 var pending = new TaskCompletionSource<Version>();
                 var window = Create(token => { calls++; return pending.Task; });
