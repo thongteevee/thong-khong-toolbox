@@ -73,6 +73,8 @@ Toolbox uses the Sling password only to establish a session. Windows encrypts th
 
 Submitted applications appear as **Applied** on the calendar and as read-only rows in Results. Once Sling assigns the shift, the calendar shows it as booked. Toolbox tracks applications to prevent duplicate submissions. Calendar commitments and assigned shifts can block an application. See the [Sling tool guide](auto-sling-shift-apply/README.md) for the sample schedule and run behavior.
 
+Uncertain requests are rechecked against Sling. Confirmed applications remain blocked from duplicate submission; a definitively absent request can be selected again. If the local application history is damaged, submissions stop with recovery guidance instead of discarding the history.
+
 The calendar uses yellow for **Applied**, blue for **Approved** shifts, gray for completed **Worked** time, and green for **Time approved**. Worked and approved time come from your Sling timesheet. Their blocks use the recorded clock-in and clock-out times, and the event details also show the scheduled times. Past days show only recorded work. If Sling cannot return timesheet status, the app reports that some work history could not be loaded. Display-only timesheets load after shift submissions, with up to three requests at once and an eight-second total timeout.
 
 ## Build from source
@@ -122,3 +124,5 @@ The same suite checks Home search, keyboard navigation, and Sling's Today/Refres
 ## Public website
 
 The [website and Google OAuth handoff](docs/website-handoff.md) covers the product page, download, privacy policy, terms, and Google Auth Platform settings.
+
+The [future Workday plan](docs/roadmap.md) records the deferred timesheet-submission idea. Current Sling timesheets remain read-only.

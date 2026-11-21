@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace Toolbox
         {
             if (settings.Demo)
             {
-                var sample = Sample();
+                var sample = Sample(monday);
                 AddAppliedShifts(sample, demoJournal.Where(entry => entry.State == "Submitted").Select(entry => entry.Shift));
                 return sample;
             }
@@ -38,10 +39,10 @@ namespace Toolbox
             report.Calendar.AddRange(await events);
             report.Calendar.AddRange(await schedule);
             report.Shifts.AddRange(await shifts);
-            var journal = LocalData.Load("applications", new List<Entry>());
-            var previous = journal.Where(entry => entry.Account == sling.Key && entry.State == "Submitted" &&
+            var journal = ReadJournal(LocalData.SettingsPath("applications"));
+            var previous = journal.Where(entry => entry.Account == sling.Key && (entry.State == "Submitted" || entry.State == "Uncertain") &&
                 entry.Shift.Start < until && entry.Shift.End > from).ToList();
-            await RecheckPriorApplications(report, sling.Key, previous, sling.CheckApplication);
+            if (await RecheckPriorApplications(report, sling.Key, previous, sling.CheckApplication)) LocalData.Save("applications", journal);
             AddAppliedShifts(report, previous.Where(entry => entry.State == "Submitted").Select(entry => entry.Shift));
             await sling.EnrichTimesheets(report.Calendar);
             if (sling.TimesheetsUnavailable) report.Note = "Schedule loaded. Some timesheet statuses could not be read from Sling.";
@@ -56,7 +57,7 @@ namespace Toolbox
                 throw new InvalidOperationException("Preview matches and check the shifts you want to apply for.");
             if (settings.Demo)
             {
-                var sample = Sample();
+                var sample = Sample(selectedMonday);
                 SetPreviewWeek(sample, selectedMonday);
                 var from = Planner.At(sample.Monday, TimeSpan.Zero);
                 sample.Shifts.RemoveAll(shift => shift.Start < from || shift.Start >= sample.Through);
@@ -95,8 +96,8 @@ namespace Toolbox
             }
             report.Calendar.AddRange(await events);
             report.Calendar.AddRange(await assigned);
-            var journal = LocalData.Load("applications", new List<Entry>());
-            await RecheckPriorApplications(report, sling.Key, journal, sling.CheckApplication);
+            var journal = ReadJournal(LocalData.SettingsPath("applications"));
+            if (await RecheckPriorApplications(report, sling.Key, journal, sling.CheckApplication)) LocalData.Save("applications", journal);
             await Process(report, settings, submit, sling.Key, journal, sling.Apply, () => LocalData.Save("applications", journal), progress, selected, confirmed);
             if (report.Results.Any(row => row.Status == "Submitted"))
             {
@@ -146,22 +147,47 @@ namespace Toolbox
                 selected.Start == current.Start && selected.End == current.End;
         }
 
-        internal static async Task RecheckPriorApplications(RunReport report, string account, List<Entry> journal,
+        internal static List<Entry> ReadJournal(string path)
+        {
+            try
+            {
+                var journal = LocalData.Json().Deserialize<List<Entry>>(File.ReadAllText(path));
+                if (journal == null || journal.Any(entry => entry == null || String.IsNullOrWhiteSpace(entry.Account) ||
+                    !new[] { "Submitted", "Uncertain", "No longer listed" }.Contains(entry.State) || entry.Shift == null || entry.Shift.End <= entry.Shift.Start))
+                    throw new InvalidOperationException("Incomplete application history.");
+                return journal;
+            }
+            catch (FileNotFoundException) { return new List<Entry>(); }
+            catch (DirectoryNotFoundException) { return new List<Entry>(); }
+            catch (Exception exception)
+            {
+                if (!LocalData.Unreadable(exception) && !(exception is IOException) && !(exception is UnauthorizedAccessException)) throw;
+                throw new InvalidOperationException("Application history could not be read. Restore applications.json before applying again so requests are not duplicated.", exception);
+            }
+        }
+
+        internal static async Task<bool> RecheckPriorApplications(RunReport report, string account, List<Entry> journal,
             Func<Slot, Task<bool?>> check)
         {
-            foreach (var offer in report.Shifts.Where(shift => shift.Kind == "Available" && shift.ApplicationListKnown))
+            var changed = false;
+            foreach (var offer in report.Shifts.Where(shift => shift.Kind == "Available" || shift.Kind == "Pending"))
             {
-                var recorded = journal.Where(entry => entry.Account == account && entry.State == "Submitted" &&
+                var recorded = journal.Where(entry => entry.Account == account && (entry.State == "Submitted" || entry.State == "Uncertain") &&
                     SameSelection(entry.Shift, offer)).ToList();
                 if (recorded.Count == 0) continue;
-                if (report.Calendar.Any(slot => (slot.Kind == "Pending" && Planner.SameOffer(slot, offer)) ||
-                    (slot.Kind == "Booked" && Planner.SameShift(slot, offer)))) continue;
-
-                var active = await check(offer);
-                if (active == true) offer.Kind = "Pending";
-                if (active == false)
-                    foreach (var entry in recorded) entry.State = "No longer listed";
+                var booked = report.Calendar.Any(slot => slot.Kind == "Booked" && Planner.SameShift(slot, offer));
+                var pending = offer.Kind == "Pending" || report.Calendar.Any(slot => slot.Kind == "Pending" && Planner.SameOffer(slot, offer));
+                var active = booked || pending ? (bool?)true : offer.ApplicationListKnown || recorded.Any(entry => entry.State == "Uncertain")
+                    ? await check(offer) : null;
+                if (!active.HasValue) continue;
+                if (active.Value && !booked) offer.Kind = "Pending";
+                foreach (var entry in recorded)
+                {
+                    var state = active.Value ? "Submitted" : "No longer listed";
+                    if (entry.State != state) { entry.State = state; changed = true; }
+                }
             }
+            return changed;
         }
 
         internal static async Task Process(RunReport report, Settings settings, bool submit, string account,
@@ -322,10 +348,10 @@ namespace Toolbox
                 PositionName = shift.PositionName, Notes = shift.Notes, OpenEnd = shift.OpenEnd };
         }
 
-        internal static RunReport Sample()
+        internal static RunReport Sample(DateTime? selectedMonday = null)
         {
-            var monday = new DateTime(2026, 11, 16);
-            var sample = new RunReport { Now = Planner.At(monday, TimeSpan.FromHours(7)) };
+            var monday = Planner.Monday(selectedMonday ?? Planner.Local(DateTimeOffset.UtcNow).Date);
+            var sample = new RunReport { Now = Planner.At(monday, TimeSpan.FromHours(7)), Monday = monday, Through = Planner.At(monday.AddDays(7), TimeSpan.Zero) };
             sample.Calendar.AddRange(new[] {
                 Demo(monday, 0, "08:30", "09:50", "PHIL 334", "Calendar"),
                 Demo(monday, 0, "12:30", "16:00", "MTSS Delivery", "Booked"),

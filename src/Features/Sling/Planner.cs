@@ -32,6 +32,9 @@ namespace Toolbox
 
         public static void Validate(Settings settings)
         {
+            if (settings == null || settings.Rules == null || settings.Rules.Any(rule => rule == null) ||
+                settings.Calendars == null || settings.Calendars.Any(String.IsNullOrWhiteSpace))
+                throw new InvalidOperationException("Saved calendars or rules are incomplete. Review Sling settings.");
             foreach (var rule in settings.Rules.Where(rule => rule.Enabled))
             {
                 if (String.IsNullOrWhiteSpace(rule.Title)) throw new InvalidOperationException("Give each enabled rule an event title to match.");

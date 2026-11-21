@@ -22,6 +22,7 @@ namespace Toolbox
         private bool googleConnected;
         private bool slingConnected;
         private readonly HubAccounts accounts;
+        private string startupNotice;
         private WinOpt.WinOptView winOptView;
         private static readonly string[] HubViews = { "Home", "Sling", "WinOpt", "Settings" };
 
@@ -30,15 +31,9 @@ namespace Toolbox
         {
             latestRelease = releaseLookup ?? ToolboxReleases.GetLatestVersion;
             accounts = accountStore ?? new HubAccounts(LocalData.ToolboxFolder);
-            string startupNotice = accounts.Notice;
-            try { settings = LocalData.Load("settings", new Settings()); }
-            catch (Exception exception)
-            {
-                if (!LocalData.Unreadable(exception)) throw;
-                LocalData.SetAside(LocalData.SettingsPath("settings"));
-                settings = new Settings();
-                startupNotice = "Saved Sling settings could not be read and were set aside. Choose your calendars and rules again.";
-            }
+            startupNotice = accounts.Notice;
+            settings = LocalData.LoadPreferences(LocalData.SettingsPath("settings"), new Settings(), Planner.Validate,
+                () => startupNotice = "Saved Sling settings could not be read. Choose your calendars and rules again.");
             if (settings.Version < Settings.CurrentVersion)
             {
                 settings.Demo = false;

@@ -22,7 +22,7 @@ namespace Toolbox
         {
             path = Path.Combine(folder, "accounts.dpapi");
             current = TryLoad<Connections>(path);
-            if (current != null) return;
+            if (current != null) { ValidateConnections(); return; }
 
             var legacy = Path.Combine(folder, "Sling");
             var google = TryLoad<GoogleCredential>(Path.Combine(legacy, "google.dpapi"));
@@ -37,6 +37,21 @@ namespace Toolbox
             {
                 Save(GoogleClient.IsClient(client) ? Registration(client) : null, null, sling);
             }
+            ValidateConnections();
+        }
+
+        private void ValidateConnections()
+        {
+            var invalid = false;
+            if (current.GoogleClient != null && !GoogleClient.IsClient(current.GoogleClient))
+            { current.GoogleClient = null; current.GoogleRefreshToken = null; invalid = true; }
+            if (!String.IsNullOrEmpty(current.GoogleRefreshToken) && current.GoogleClient == null)
+            { current.GoogleRefreshToken = null; invalid = true; }
+            var sling = current.Sling;
+            if (sling != null && (Api.PositiveId(sling.Org) == null || Api.PositiveId(sling.User) == null ||
+                String.IsNullOrWhiteSpace(sling.Token) || sling.Token.Contains("\r") || sling.Token.Contains("\n")))
+            { current.Sling = null; invalid = true; }
+            if (invalid) Notice = "Some saved connections are incomplete. Reconnect them in Settings.";
         }
 
         private T TryLoad<T>(string file) where T : class
@@ -44,7 +59,7 @@ namespace Toolbox
             try { return LocalData.LoadSecret<T>(file); }
             catch (Exception exception)
             {
-                if (!LocalData.Unreadable(exception)) throw;
+                if (!LocalData.Unreadable(exception) && !(exception is IOException) && !(exception is UnauthorizedAccessException)) throw;
                 LocalData.SetAside(file);
                 Notice = "Saved account connections could not be read on this Windows user and were set aside. Reconnect Google and Sling in Settings.";
                 return null;

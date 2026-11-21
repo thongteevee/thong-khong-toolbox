@@ -19,7 +19,8 @@ namespace Toolbox
     {
         private void WireMikuTheme()
         {
-            var appearance = LocalData.Load("appearance", new AppearanceSettings());
+            var appearance = LocalData.LoadPreferences(LocalData.SettingsPath("appearance"), new AppearanceSettings(), null,
+                () => startupNotice = (startupNotice == null ? "" : startupNotice + " ") + "Appearance settings were restored to defaults.");
             var pink = Get<CheckBox>("MikuPinkTheme");
             var artwork = Get<CheckBox>("MikuArtwork");
             pink.IsChecked = appearance.MikuPink;

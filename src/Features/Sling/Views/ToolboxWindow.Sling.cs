@@ -174,7 +174,9 @@ namespace Toolbox
         {
             if (busy || visibleMonday == monday) return;
             visibleMonday = monday;
-            weekReport = settings.Demo ? ShiftRunner.Sample() : null;
+            loadedMonday = null;
+            loadedMonday = null;
+            weekReport = settings.Demo ? ShiftRunner.Sample(monday) : null;
             UpdateWeek();
             await RefreshWeek();
         }

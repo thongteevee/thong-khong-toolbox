@@ -56,6 +56,13 @@ namespace Toolbox.Tests
             Require(!window.HandleNavigationShortcut(Key.D1, ModifierKeys.Control) && (DateTime)type.GetField("visibleMonday", flags).GetValue(window) == today,
                 "Navigation or week changes interrupted an active task.");
             type.GetField("busy", flags).SetValue(window, false);
+            settings.Demo = false;
+            type.GetField("loadedMonday", flags).SetValue(window, (DateTime?)today);
+            type.GetField("weekReport", flags).SetValue(window, null);
+            Click(root, "NextWeek");
+            Require(type.GetField("loadedMonday", flags).GetValue(window) == null, "Changing week retained a cache marker without its report.");
+            Click(root, "PreviousWeek");
+            Require(type.GetField("loadedMonday", flags).GetValue(window) == null, "Returning to a failed week's view incorrectly skipped refresh.");
             window.Close();
             Console.WriteLine("Passed app search, empty/clear states, keyboard navigation, Today, Refresh, and active-task guards.");
         }

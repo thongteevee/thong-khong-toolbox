@@ -182,6 +182,7 @@ namespace Toolbox
             try
             {
                 if (!Directory.Exists(root)) return;
+                if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) return;
                 foreach (var folder in Directory.EnumerateDirectories(root))
                 {
                     var info = new DirectoryInfo(folder);
@@ -189,7 +190,10 @@ namespace Toolbox
                         nowUtc - info.CreationTimeUtc < TimeSpan.FromDays(1)) continue;
                     try
                     {
-                        foreach (var file in info.EnumerateFiles()) TryDelete(file.FullName);
+                        var files = info.GetFileSystemInfos();
+                        if (files.Any(file => (file.Attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0 ||
+                            !new[] { "ThongKhongToolbox.exe", "ThongKhongToolboxSetup.exe", "SHA256SUMS.txt" }.Contains(file.Name, StringComparer.OrdinalIgnoreCase))) continue;
+                        foreach (var file in files) TryDelete(file.FullName);
                         info.Delete(false);
                     }
                     catch (IOException) { }

@@ -17,6 +17,7 @@ namespace Toolbox.Tests
         {
             try
             {
+                ReviewChecks.Run().GetAwaiter().GetResult();
                 var today = Planner.Local(DateTimeOffset.UtcNow).Date;
                 var booked = Shift("Scheduled", "Booked", today, 9, 13);
                 var originalStart = booked.Start;

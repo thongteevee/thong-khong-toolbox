@@ -19,12 +19,14 @@ namespace Toolbox.Tests
             try
             {
                 UnreadableAccounts(root);
+                PreferenceRecovery(root);
+                IncompleteAccounts(root);
                 RedirectHandling();
                 DownloadCleanup(root);
                 PortableBackups(root);
             }
             finally { Directory.Delete(root, true); }
-            Console.WriteLine("Passed unreadable account recovery, idle and stray sign-in connections, update download cleanup, and single portable backup.");
+            Console.WriteLine("Passed damaged/null preference recovery, incomplete accounts, sign-in redirects, scoped update cleanup, and portable backup checks.");
         }
 
         private static void UnreadableAccounts(string root)
@@ -66,6 +68,43 @@ namespace Toolbox.Tests
             finally { listener.Stop(); }
         }
 
+        private static void PreferenceRecovery(string root)
+        {
+            var cases = new[] { "null", "[]", "{\"Rules\":null}", "{\"Calendars\":null}", "{\"Rules\":[null]}", "{\"Calendars\":[null]}" };
+            foreach (var json in cases)
+            {
+                var file = Path.Combine(root, "preferences.json");
+                File.WriteAllText(file, json);
+                var recovered = false;
+                var settings = LocalData.LoadPreferences(file, new Settings(), Planner.Validate, () => recovered = true);
+                Require(recovered && settings.Calendars.Length == 0 && settings.Rules != null && !File.Exists(file), "Incomplete settings caused startup failure or silently retained calendars.");
+            }
+            var appearance = Path.Combine(root, "appearance.json");
+            File.WriteAllText(appearance, "null");
+            var notice = false;
+            var theme = LocalData.LoadPreferences(appearance, new AppearanceSettings(), null, () => notice = true);
+            Require(notice && theme.MikuPink, "Null appearance preferences were not recovered.");
+            File.WriteAllText(appearance, "{\"MikuPink\":false,\"Artwork\":false}");
+            theme = LocalData.LoadPreferences(appearance, new AppearanceSettings(), null, () => { throw new Exception("Valid preferences recovered"); });
+            Require(!theme.MikuPink && !theme.Artwork, "Valid appearance preferences changed.");
+            Require(Directory.GetFiles(root, "preferences.json.unreadable-*").Length == cases.Length, "Damaged preference backups collided or were lost.");
+        }
+
+        private static void IncompleteAccounts(string root)
+        {
+            var folder = Path.Combine(root, "partial-accounts");
+            var file = Path.Combine(folder, "accounts.dpapi");
+            var validSling = new SlingConnection { Token = "fixture", Org = "1", User = "2", Display = "Fixture" };
+            LocalData.SaveSecret(file, new HubAccounts.Connections { GoogleRefreshToken = "fixture", Sling = validSling });
+            var original = File.ReadAllBytes(file);
+            var accounts = new HubAccounts(folder);
+            Require(accounts.Google == null && accounts.Sling != null && accounts.Notice != null, "Incomplete Google credentials crashed startup or removed a working Sling connection.");
+            Require(File.ReadAllBytes(file).SequenceEqual(original), "Validation overwrote the credential vault.");
+            LocalData.SaveSecret(file, new HubAccounts.Connections { Sling = new SlingConnection { Token = "fixture", Org = "bad", User = "2" } });
+            accounts = new HubAccounts(folder);
+            Require(accounts.Sling == null && accounts.Notice != null, "Incomplete Sling credentials appeared connected.");
+        }
+
         private static Tuple<bool, string> Send(TcpListener listener, int port, string redirect, string request)
         {
             using (var browser = new TcpClient())
@@ -88,9 +127,15 @@ namespace Toolbox.Tests
             var old = Folder(downloads, Guid.NewGuid().ToString("N"), true);
             var current = Folder(downloads, Guid.NewGuid().ToString("N"), false);
             var other = Folder(downloads, "keep-me", true);
+            var mixed = Folder(downloads, Guid.NewGuid().ToString("N"), true);
+            File.WriteAllText(Path.Combine(mixed, "keep.txt"), "keep");
+            var nested = Folder(downloads, Guid.NewGuid().ToString("N"), true);
+            Directory.CreateDirectory(Path.Combine(nested, "keep"));
             ToolboxUpdater.RemoveOldDownloads(downloads, DateTime.UtcNow);
             Require(!Directory.Exists(old), "An old update download was not removed.");
             Require(Directory.Exists(current) && Directory.Exists(other), "Cleanup removed a recent or unrelated folder.");
+            Require(File.Exists(Path.Combine(mixed, "ThongKhongToolbox.exe")) && File.Exists(Path.Combine(mixed, "keep.txt")) &&
+                File.Exists(Path.Combine(nested, "ThongKhongToolbox.exe")), "Update cleanup changed a folder containing unrelated files or subfolders.");
         }
 
         private static string Folder(string parent, string name, bool old)

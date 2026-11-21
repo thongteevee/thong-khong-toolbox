@@ -37,6 +37,25 @@ namespace Toolbox
             return File.Exists(path) ? Json().Deserialize<T>(File.ReadAllText(path)) : fallback;
         }
 
+        internal static T LoadPreferences<T>(string path, T fallback, Action<T> validate, Action recovered) where T : class
+        {
+            if (!File.Exists(path)) return fallback;
+            try
+            {
+                var value = Json().Deserialize<T>(File.ReadAllText(path));
+                if (value == null) throw new InvalidOperationException("Saved preferences are empty.");
+                if (validate != null) validate(value);
+                return value;
+            }
+            catch (Exception exception)
+            {
+                if (!Unreadable(exception) && !(exception is IOException) && !(exception is UnauthorizedAccessException)) throw;
+                SetAside(path);
+                if (recovered != null) recovered();
+                return fallback;
+            }
+        }
+
         // True for files that exist but cannot be decrypted or parsed (damaged, edited,
         // or protected for another Windows user or PC).
         internal static bool Unreadable(Exception exception)
@@ -48,7 +67,7 @@ namespace Toolbox
         // Keep an unreadable file for inspection instead of deleting it, so startup can continue.
         internal static void SetAside(string path)
         {
-            var aside = path + ".unreadable-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            var aside = path + ".unreadable-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N");
             try { File.Move(path, aside); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }

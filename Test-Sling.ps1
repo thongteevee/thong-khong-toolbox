@@ -12,7 +12,7 @@ $references = @('System.dll', 'System.Core.dll', 'System.Web.dll', 'System.Web.E
     'System.Security.dll', 'System.Xaml.dll', 'System.Xml.dll', 'WPF\WindowsBase.dll', 'WPF\PresentationCore.dll',
     'WPF\PresentationFramework.dll', 'WPF\UIAutomationTypes.dll') | ForEach-Object { '/reference:' + (Join-Path $framework $_) }
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $project 'src') -Filter '*.cs' -Recurse -File | Select-Object -ExpandProperty FullName)
-$sources += Join-Path $project 'tests\Sling\TimesheetChecks.cs'
+$sources += @(Get-ChildItem -LiteralPath (Join-Path $project 'tests\Sling') -Filter '*.cs' -File | Select-Object -ExpandProperty FullName)
 $executable = Join-Path $output 'SlingTests.exe'
 & $compiler /nologo /target:exe /main:Toolbox.Tests.TimesheetChecks /codepage:65001 "/out:$executable" $references $sources
 if ($LASTEXITCODE -ne 0) { throw 'Sling tests did not compile.' }
