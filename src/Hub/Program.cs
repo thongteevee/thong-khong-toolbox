@@ -25,7 +25,7 @@ namespace Toolbox
                     MessageBox.Show("Thong Khong Toolbox is already open.", "Thong Khong Toolbox");
                     return;
                 }
-                System.Threading.Tasks.Task.Run(() => ToolboxUpdater.RemoveOldDownloads(ToolboxUpdater.DownloadRoot, DateTime.UtcNow));
+                // Do not prune existing files at startup. User data and old downloads are preserved.
                 try { new Application().Run(new ToolboxWindow()); }
                 catch (Exception exception) { MessageBox.Show(exception.GetBaseException().Message, "Thong Khong Toolbox", MessageBoxButton.OK, MessageBoxImage.Error); }
             }

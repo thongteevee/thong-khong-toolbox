@@ -310,12 +310,20 @@ namespace Toolbox
 
         internal async Task<int> Apply(Slot shift)
         {
+            shift.ApplicationDiagnostics = null;
             // Sling accepts this application endpoint as an empty POST without a 100-continue handshake.
             var empty = new ByteArrayContent(new byte[0]);
             empty.Headers.ContentLength = 0;
+            using (var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(12)))
             using (var response = await Api.Send(SlingRoot + "shifts/" + shift.ApplyId + "/applications?ignoreConflicts=false",
-                HttpMethod.Post, account.Token, empty, expectContinue: false).ConfigureAwait(false))
-                return (int)response.StatusCode;
+                HttpMethod.Post, account.Token, empty, expectContinue: false, cancellationToken: deadline.Token,
+                completion: HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+            {
+                var code = (int)response.StatusCode;
+                if (code == 417)
+                    shift.ApplicationDiagnostics = await SlingApplicationDiagnostics.Read(response, account.Token, deadline.Token).ConfigureAwait(false);
+                return code;
+            }
         }
     }
 }

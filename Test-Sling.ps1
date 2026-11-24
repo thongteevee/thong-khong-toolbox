@@ -6,9 +6,9 @@ if (-not (Test-Path -LiteralPath $compiler)) {
     $framework = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319'
     $compiler = Join-Path $framework 'csc.exe'
 }
-$output = Join-Path $project 'dist\SlingTests'
+$output = Join-Path (Join-Path $project 'dist\SlingTests') ([Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $output -Force | Out-Null
-$references = @('System.dll', 'System.Core.dll', 'System.Web.dll', 'System.Web.Extensions.dll', 'System.Net.Http.dll',
+$references = @('System.dll', 'System.Core.dll', 'System.Windows.Forms.dll', 'System.Web.dll', 'System.Web.Extensions.dll', 'System.Net.Http.dll',
     'System.Security.dll', 'System.Xaml.dll', 'System.Xml.dll', 'WPF\WindowsBase.dll', 'WPF\PresentationCore.dll',
     'WPF\PresentationFramework.dll', 'WPF\UIAutomationTypes.dll') | ForEach-Object { '/reference:' + (Join-Path $framework $_) }
 $sources = @(Get-ChildItem -LiteralPath (Join-Path $project 'src') -Filter '*.cs' -Recurse -File | Select-Object -ExpandProperty FullName)

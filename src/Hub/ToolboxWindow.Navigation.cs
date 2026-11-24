@@ -23,7 +23,7 @@ namespace Toolbox
             homeApps = new[] {
                 new HomeApp { Name = "Sling Shift Auto Apply", Detail = "Preview and apply for shifts around your calendar.",
                     Icon = "\uE787", Open = new ToolCommand(() => Get<RadioButton>("SlingNav").IsChecked = true) },
-                new HomeApp { Name = "WinOpt", Detail = "Review temporary files and maintain Windows storage.",
+                new HomeApp { Name = "WinOpt", Detail = "Find identical file contents without changing your files.",
                     Icon = "\uEDA2", Open = new ToolCommand(() => Get<RadioButton>("WinOptNav").IsChecked = true) }
             };
             var search = Get<TextBox>("AppSearch");

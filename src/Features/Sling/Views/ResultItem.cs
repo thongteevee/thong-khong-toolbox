@@ -12,6 +12,8 @@ namespace Toolbox
         public string Schedule { get; private set; }
         public string Status { get; private set; }
         public string Reason { get; private set; }
+        public string Diagnostics { get; private set; }
+        public bool HasDiagnostics { get { return !String.IsNullOrEmpty(Diagnostics); } }
         public Brush StatusForeground { get; private set; }
         public Brush StatusBackground { get; private set; }
 
@@ -47,6 +49,7 @@ namespace Toolbox
             if (Status == "Needs confirmation") Reason += " Select to confirm for this shift.";
             if (decision != null)
             {
+                Diagnostics = decision.Status == "Declined" ? decision.Shift.ApplicationDiagnostics : null;
                 Name = decision.Shift.Name;
                 Schedule = Planner.Local(decision.Shift.Start).ToString("ddd, MMM d") + " · " + WeekTimeline.TimeRange(decision.Shift) + " ET";
             }

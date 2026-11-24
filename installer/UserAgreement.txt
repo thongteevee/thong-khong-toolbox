@@ -1,5 +1,5 @@
 THONG KHONG TOOLBOX USER AGREEMENT
-Effective November 19, 2026
+Effective November 24, 2026
 
 1. Agreement and scope
 
@@ -15,9 +15,9 @@ Demo mode uses sample data and simulates submissions. In live mode, Preview matc
 
 Choosing Auto apply authorizes Toolbox to submit applications for the selected shifts to Sling. Check the reported outcomes and confirm questionable or uncertain results in Sling before retrying. Shift availability, calendar events, and assignments can change between preview and submission. Sling and your supervisor determine approval and assignments. Confirm your work schedule with Sling or your supervisor.
 
-4. WinOpt storage maintenance
+4. WinOpt read-only duplicate discovery
 
-Scan only and Dry run selected do not delete files. Review the preview before selecting files and confirming Clean selected. Confirmed cleanup permanently deletes eligible selected temporary files without using the Recycle Bin; there is no undo. Age and lack of a lock do not prove a file is unwanted. Close installers and keep important data backed up. Some files may be skipped or become unavailable; review the reported outcomes. Estimated candidate bytes and observed free-space changes can differ. WinOpt does not promise a performance improvement. Native Windows maintenance and diagnostic tools have their own scope, controls and approval prompts.
+WinOpt compares files in folders you explicitly select and displays matching contents for review. It does not delete, move, rename or otherwise change scanned files. Duplicate contents do not imply that a file is unwanted or safe to remove. Results describe what was read during the scan, and files can change afterward. Some files are skipped, and cancelled or limited scans produce partial results. WinOpt does not promise recovered storage or a performance improvement. Windows diagnostic tools have their own controls.
 
 5. Third-party services
 

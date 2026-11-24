@@ -43,6 +43,7 @@ namespace Toolbox
         public string Notes { get; set; }
         public bool OpenEnd { get; set; }
         internal bool ApplicationListKnown { get; set; }
+        internal string ApplicationDiagnostics { get; set; }
         internal List<WorkPeriod> WorkPeriods { get; set; }
         internal bool TimesheetUnavailable { get; set; }
         internal Slot ScheduledShift { get; private set; }

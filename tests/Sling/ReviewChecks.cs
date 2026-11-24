@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Toolbox.Tests
@@ -40,6 +45,8 @@ namespace Toolbox.Tests
             await ShiftRunner.Process(new RunReport { Now = DateTimeOffset.UtcNow, Shifts = new List<Slot> { offer } }, new Settings(), true,
                 "1:2", journal, shift => { sent++; return Task.FromResult(201); }, () => {}, message => {}, new[] { offer });
             Require(sent == 1, "A definitively absent request could not be selected and submitted again.");
+            await CheckSubmissionPacing(offer.Start);
+            await CheckErrorDetails(offer);
 
             var folder = Path.GetFullPath(Path.Combine("dist", "SlingTests", "journal-review-" + Guid.NewGuid().ToString("N")));
             Directory.CreateDirectory(folder);
@@ -67,6 +74,60 @@ namespace Toolbox.Tests
             Console.WriteLine("Passed uncertain application reconciliation, account isolation, and demo selected-week checks.");
         }
 
+        private static async Task CheckSubmissionPacing(DateTimeOffset start)
+        {
+            var offers = Enumerable.Range(1, 4).Select(id => new Slot { Id = id.ToString(), ApplyId = id.ToString(), Kind = "Available",
+                Name = "Fixture " + id, Start = start.AddHours(id), End = start.AddHours(id + 2) }).ToList();
+            var clock = Stopwatch.StartNew();
+            var journal = new List<Entry>();
+            var sentAt = new List<TimeSpan>();
+            var report = new RunReport { Now = DateTimeOffset.UtcNow, Shifts = offers };
+            var saves = 0;
+            await ShiftRunner.Process(report, new Settings(), true, "fixture", journal, shift =>
+            {
+                sentAt.Add(clock.Elapsed);
+                var expectedSaves = sentAt.Count <= 2 ? 1 : 3;
+                Require(saves == expectedSaves && journal.Count(item => item.State == "Uncertain") == 1 &&
+                    ReferenceEquals(journal.Last().Shift, shift), "A request started without its own saved journal entry.");
+                if (sentAt.Count == 3) throw new TaskCanceledException();
+                return Task.FromResult(sentAt.Count == 1 ? 417 : 201);
+            }, () => saves++, message => {}, offers);
+            Require(sentAt.Count == 3 && report.ApplicationsSent == 1 && sentAt.Zip(sentAt.Skip(1), (first, next) => next - first)
+                .All(delay => delay >= TimeSpan.FromMilliseconds(105)), "Requests overlapped or failed to back off after a 417.");
+            Require(report.Results.Select(row => row.Status).SequenceEqual(new[] { "Submitted", "Check Sling", "Not sent", "Not sent" }) &&
+                report.Results[1].Reason.Contains("timed out") && journal.Select(item => item.State).SequenceEqual(new[] { "Submitted", "Uncertain" }),
+                "A timeout was treated as a rejection or caused an unsafe retry.");
+
+            journal.Clear();
+            report = new RunReport { Now = DateTimeOffset.UtcNow, Shifts = offers };
+            var calls = 0;
+            await ShiftRunner.Process(report, new Settings { Demo = true }, true, "fixture", journal,
+                shift => { calls++; return Task.FromResult(417); }, () => {}, message => {}, offers);
+            Require(calls == 10 && report.Results[0].Status == "Declined" && report.Results.Skip(1).All(row => row.Status == "Not sent" && row.Reason.Contains("417")) && journal.Count == 0,
+                "Repeated 417 rejections did not pause the remaining queue.");
+        }
+
         private static void Require(bool condition, string message) { if (!condition) throw new Exception(message); }
+
+        private static async Task CheckErrorDetails(Slot offer)
+        {
+            using (var response = new HttpResponseMessage(HttpStatusCode.ExpectationFailed))
+            {
+                response.Headers.Add("X-Request-ID", "fixture-request");
+                response.Content = new StringContent("{\"developerMessage\":\"Cannot apply (fixture-secret)\",\"requestId\":\"fixture-json-id\",\"token\":\"do-not-show\"}", Encoding.UTF8, "application/json");
+                offer.ApplicationDiagnostics = await SlingApplicationDiagnostics.Read(response, "fixture-secret", CancellationToken.None);
+                var row = new ResultItem(new Decision(offer, "Declined", "HTTP 417"), false, () => {});
+                Require(row.HasDiagnostics && row.Diagnostics.Contains("fixture-request") && row.Diagnostics.Contains("fixture-json-id") &&
+                    row.Diagnostics.Contains("Cannot apply ([redacted])") && !row.Diagnostics.Contains("fixture-secret") && !row.Diagnostics.Contains("do-not-show"),
+                    "Failed application did not surface useful redacted diagnostics.");
+                Require(!LocalData.Json().Serialize(offer).Contains("fixture-request"), "Diagnostics leaked into the application journal.");
+            }
+            using (var response = new HttpResponseMessage(HttpStatusCode.ExpectationFailed))
+            {
+                response.Content = new StringContent("<html>Fixture gateway page</html>", Encoding.UTF8, "text/html");
+                var details = await SlingApplicationDiagnostics.Read(response, null, CancellationToken.None);
+                Require(details.Contains("HTML") && !details.Contains("Fixture gateway page"), "Gateway markup was copied into the diagnostic.");
+            }
+        }
     }
 }

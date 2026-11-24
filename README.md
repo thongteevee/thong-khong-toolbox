@@ -1,6 +1,6 @@
 # Thong Khong Toolbox
 
-Thong Khong Toolbox is a Windows desktop hub built in C# and WPF. **Sling Shift Auto Apply** compares open Sling shifts with your Google Calendar and submits applications for the shifts you select. **WinOpt** previews temporary-file cleanup and connects you with Windows storage and performance diagnostics. Both tools run inside the same window.
+Thong Khong Toolbox is a Windows desktop hub built in C# and WPF. **Sling Shift Auto Apply** compares open Sling shifts with your Google Calendar and submits applications for the shifts you select. **WinOpt** finds identical file contents in folders you choose, without changing your files. Both tools run inside the same window.
 
 **[Download Windows installer](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolboxSetup.exe)** · **[Download portable EXE](https://github.com/thongteevee/thong-khong-toolbox/releases/latest/download/ThongKhongToolbox.exe)** · [Release notes and checksums](https://github.com/thongteevee/thong-khong-toolbox/releases/latest)
 
@@ -23,26 +23,21 @@ Open **Sling Shift Auto Apply** from Home. To try it with sample shifts, enable 
 
 Toolbox checks for updates at startup. A newer stable release shows an **Update now** / **Later** banner. Checks run in the background; an unavailable connection does not interrupt startup. **Update now** downloads the release, verifies its SHA-256 checksum, and restarts the app. You can also check manually in **Settings → Updates**. Installed copies upgrade through Windows Setup. Portable copies retain a backup alongside the EXE. Settings and connections are stored separately.
 
-## WinOpt storage maintenance
+## WinOpt duplicate discovery
 
-Open **WinOpt** from Home or the sidebar. It uses the same window and shared pink and light teal theme. Home's **Grid / List** switch sits beside the Apps heading and changes the app catalog layout.
+Open **WinOpt → Duplicate files** from Home or the sidebar. Choose one or more folders, optionally exclude paths or include subfolders, then select **Find duplicate contents**.
+
+WinOpt filters by length, hashes possible matches with SHA-256, then compares bytes. Different names and dates can still match; names and ages alone do not prove duplication. Select a matching group to inspect file paths, sizes and modified dates. Cancellation and scan limits produce clearly partial results.
+
+**This is read-only. There are no cleanup, deletion, rename, move or automatic keep/remove actions.** The legacy cleanup service and native write/deletion entry points are disabled. Matching contents do not mean a file is unwanted. No filename history or scan results are written to disk or uploaded.
+
+The automatic startup task that pruned old updater downloads is also disabled. Existing updater downloads are preserved regardless of age.
+
+Links, cloud placeholders, system files, locked/inaccessible files, hard-linked files and files that change during scanning are skipped. This version scans explicitly selected folders on local fixed drives and stops after 100,000 inspected entries. Details are in the [duplicate-discovery guide](docs/duplicate-discovery.md) and [specification](specs/002-duplicate-discovery/spec.md).
+
+Storage information remains available on request, alongside links to Task Manager, Startup apps and Installed apps. These are separate from duplicate discovery. WinOpt makes no claim that finding duplicates speeds up Windows or recovers storage.
 
 Search Home by app name or description. **Ctrl+F** opens search; **Ctrl+1/2/3** opens Home/Sling/WinOpt, and **Ctrl+,** opens Settings. Enter opens a single search match; Escape clears the search.
-
-1. **Storage** shows local drives and free/used space. **Temporary files** opens Cleanup.
-2. **Cleanup → Scan** previews user temporary files older than 7 days. Select files, then choose **Clean selected…** and confirm permanent deletion. Nothing starts selected. Close installers first; an old, unlocked file can still be useful.
-3. The list starts with the largest files first and fits at least 10 rows. Drag its lower grip to resize it, or choose **Expand list** for a larger resizable window. Selections stay shared. Empty scans show whether no files were found or the scan was incomplete.
-4. **Results** shows the latest outcome. **Copy** copies the summary, including technical details when Advanced mode is on. Completed operations leave a full progress bar. Cleanup consumes the preview; scan again to continue. Previews expire after 30 minutes.
-
-Turn on **Advanced mode** for cleanup modes, optional Windows Temp, exclusions, full paths, category/date columns, test runs, Windows tools, and activity details. Safe requires creation and modification more than 7 days ago; Standard requires more than 24 hours; Aggressive includes otherwise eligible files. Returning to simple mode restores Safe/user-temp scope and clears the preview while preserving exclusions. Advanced results distinguish deleted logical bytes from observed drive free-space changes. Changing scan policy invalidates the preview. Unusual TEMP redirects into personal/project or general-purpose folders are refused.
-
-WinOpt skips linked, changed, locked, protected and excluded files; it never recursively deletes directories. Its cleanup scope is temporary folders, with conservative installer/payload/project exclusions. It does not delete Downloads, Documents, browser profiles, Windows component-store files or Recycle Bin contents. Native Windows cleanup tools have their own scope and confirmation screens. No administrator prompt is requested by the hub.
-
-Use **Task Manager**, **Startup apps**, and **Installed apps** links to investigate responsiveness separately. WinOpt does not claim that deleting temporary files makes a PC faster. Scheduling, app-aware cache cleanup, in-app process/startup management, large-file analysis and duplicate discovery remain future work.
-
-Aggregate logs (without filenames) stay in `%LOCALAPPDATA%\ThongKhongToolbox\WinOpt\Logs`; approximately two 1 MiB files are retained. Scan choices and file previews are kept in memory for this session.
-
-The [reviewed implementation plan](specs/001-winopt/plan.md), [research comparison](docs/winopt-research.md), and [test plan / limitations](specs/001-winopt/test-plan.md) explain the choices and component flow. Official Spec Kit templates and workflow helpers are vendored under [.specify](.specify/README.md).
 
 ## Set up live mode
 
@@ -85,7 +80,7 @@ From the repository root, run the following in PowerShell on Windows with the .N
 .\Build.ps1
 ```
 
-The executable is written to `dist\ThongKhongToolbox.exe`. Use `-OutputDirectory` to choose a different build folder.
+The executable is written to a new uniquely named directory under `dist\builds`. Use `-OutputDirectory` to choose a new build folder. Existing executables are never overwritten.
 
 To build both release packages and their SHA-256 checksums, install [Inno Setup](https://jrsoftware.org/inno-setup/downloads) and run the release build. It embeds the version in the app and installer and writes to `dist\v0.1.2` with the version shown below. Publish it under the matching tag `v0.1.2` so the update checker can compare versions. If your compiler is installed elsewhere, pass its `ISCC.exe` path with `-InnoCompiler`.
 
@@ -99,7 +94,7 @@ Every release must be published to GitHub with its matching version tag, portabl
 |---|---|
 | `src/Hub` | WPF window, navigation, settings, and shared account connections |
 | `src/Features/Sling` | Schedule matching, submissions, calendar, and checklist |
-| `src/Features/WinOpt` | Temp-file policy, scanner, handle-based cleanup, Windows diagnostics and embedded view |
+| `src/Features/WinOpt` | Read-only duplicate scanner, native file inspection, Windows diagnostics and embedded view |
 | `src/Integrations/GoogleCalendar` | Google sign-in and Calendar requests |
 | `src/Common` | HTTP transport and encrypted local storage |
 | `installer` | Windows setup, User Agreement, and Privacy Policy |
@@ -110,11 +105,9 @@ Run WinOpt's dependency-free safety tests on Windows:
 
 ```powershell
 .\Test-WinOpt.ps1
-# Optional read-only drive probe:
-.\Test-WinOpt.ps1 -ReadOnlyDriveProbe
 ```
 
-All test deletion is confined to generated repository fixtures under `dist\WinOptTests\fixtures`. Native link tests require Windows hard-link/symlink support; restrictive execution sandboxes can block those fixture operations. No tests clean real user or Windows temporary directories or optimize drives.
+The current WinOpt suite performs no deletion. Each run creates a new directory under `dist\DuplicateTests`, records created fixtures in a manifest, and retains them. Native link tests may be skipped if Windows or the execution sandbox prevents creating fixture links. Do not execute the historical cleanup tests against real user data.
 
 Run `.\Test-Sling.ps1` to check timesheet parsing, adjusted work hours, calendar and agenda colors, and past-day filtering using local fixtures.
 

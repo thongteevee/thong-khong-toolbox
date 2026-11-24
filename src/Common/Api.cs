@@ -14,7 +14,8 @@ namespace Toolbox
         { Timeout = TimeSpan.FromSeconds(25) };
 
         internal static async Task<HttpResponseMessage> Send(string url, HttpMethod method, string token, HttpContent body = null,
-            bool? expectContinue = null, string userAgent = null, CancellationToken cancellationToken = default(CancellationToken))
+            bool? expectContinue = null, string userAgent = null, CancellationToken cancellationToken = default(CancellationToken),
+            HttpCompletionOption completion = HttpCompletionOption.ResponseContentRead)
         {
             using (var request = new HttpRequestMessage(method, url))
             {
@@ -23,7 +24,7 @@ namespace Toolbox
                 if (userAgent != null) request.Headers.UserAgent.ParseAdd(userAgent);
                 request.Content = body;
                 if (expectContinue.HasValue) request.Headers.ExpectContinue = expectContinue;
-                return await Http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return await Http.SendAsync(request, completion, cancellationToken).ConfigureAwait(false);
             }
         }
 

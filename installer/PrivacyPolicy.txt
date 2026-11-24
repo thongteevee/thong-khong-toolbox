@@ -1,5 +1,5 @@
 THONG KHONG TOOLBOX PRIVACY POLICY
-Effective November 19, 2026
+Effective November 24, 2026
 
 1. Scope
 
@@ -26,7 +26,7 @@ Toolbox saves the Google client configuration and refresh token and the Sling se
 
 The same folder contains Sling\settings.json and Sling\applications.json. These local JSON files store preferences and calendar filters, and record Sling shift information and application outcomes to track submissions and avoid duplicates. The JSON files are outside the encrypted credential vault. The portable and installed versions use the same data folder within a Windows profile.
 
-WinOpt reads local drive capacity, available media information and metadata for files in approved temporary folders. File paths, exclusions and cleanup previews are processed in memory for the current session. Only files you select and confirm are eligible for permanent deletion. WinOpt saves aggregate scan, dry-run and cleanup records under %LOCALAPPDATA%\ThongKhongToolbox\WinOpt\Logs: UTC timestamps, counts, logical byte totals, cancellation and reason/error codes. These logs do not contain candidate filenames. Approximately two 1 MiB log files are retained. WinOpt does not upload scan results or maintenance logs. Windows storage and diagnostic links open separate Windows tools with their own controls.
+WinOpt reads file metadata and contents only in folders you select for duplicate discovery, respecting exclusions and its link/placeholder safeguards. It compares sizes, SHA-256 hashes and bytes. Paths, hashes, duplicate groups and skipped counts remain in memory for the current session; no filename history or scan results are saved or uploaded. WinOpt has no file deletion, age-based cleanup, rename or move action. Previous maintenance logs from older versions are left untouched. Drive information is queried only when you choose its refresh action. Diagnostic links open Windows tools with their own controls.
 
 5. Sharing and service providers
 

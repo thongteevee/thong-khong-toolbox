@@ -6,10 +6,10 @@ the included MIT license. Upstream files are unmodified. The CLI is not installe
 the specification → plan → tasks → implementation workflow is performed using
 these templates and the official prerequisite checker, without a global Python/uv install.
 
-Active feature: `specs/001-winopt`. From PowerShell:
+Active feature: `specs/002-duplicate-discovery`. From PowerShell:
 
 ```powershell
-$env:SPECIFY_FEATURE_DIRECTORY = 'specs/001-winopt'
+$env:SPECIFY_FEATURE_DIRECTORY = 'specs/002-duplicate-discovery'
 .\.specify\scripts\powershell\check-prerequisites.ps1 -Json -RequireSpec -RequireTasks -IncludeTasks
 ```
 

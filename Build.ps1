@@ -14,10 +14,13 @@ if (-not (Test-Path -LiteralPath $compiler)) {
     $compiler = Join-Path $framework 'csc.exe'
 }
 if (-not (Test-Path -LiteralPath $compiler)) { throw 'The Windows .NET Framework 4.x compiler is missing.' }
-if ([string]::IsNullOrWhiteSpace($OutputDirectory)) { $OutputDirectory = Join-Path $project 'dist' }
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+    $OutputDirectory = Join-Path $project ('dist\builds\' + [Guid]::NewGuid().ToString('N'))
+}
 $output = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
+if (Test-Path -LiteralPath (Join-Path $output 'ThongKhongToolbox.exe')) { throw 'Refusing to overwrite an existing build. Choose a new output directory.' }
 New-Item -ItemType Directory -Path $output -Force | Out-Null
-$references = @('System.dll', 'System.Core.dll', 'System.Web.dll', 'System.Web.Extensions.dll', 'System.Net.Http.dll',
+$references = @('System.dll', 'System.Core.dll', 'System.Windows.Forms.dll', 'System.Web.dll', 'System.Web.Extensions.dll', 'System.Net.Http.dll',
     'System.Security.dll', 'System.Xaml.dll', 'System.Xml.dll', 'WPF\WindowsBase.dll', 'WPF\PresentationCore.dll',
     'WPF\PresentationFramework.dll', 'WPF\UIAutomationTypes.dll') | ForEach-Object {
     '/reference:' + (Join-Path $framework $_)
@@ -37,7 +40,10 @@ $resources = @("/resource:$layout,Toolbox.xaml", "/resource:$icon,Toolbox.ico", 
 $mikuPicture = Join-Path $project 'assets\miku\original-miku.jpg'
 $resources += "/resource:$mikuPicture,Miku.original-miku.jpg"
 $oauthResource = $null
-$versionSource = [IO.Path]::GetTempFileName()
+$metadata = Join-Path $output ('build-metadata-' + [Guid]::NewGuid().ToString('N'))
+if (Test-Path -LiteralPath $metadata) { throw 'Refusing to reuse existing build metadata.' }
+New-Item -ItemType Directory -Path $metadata | Out-Null
+$versionSource = Join-Path $metadata 'Version.cs'
 try {
     Set-Content -LiteralPath $versionSource -Encoding ascii -Value @(
         "[assembly: System.Reflection.AssemblyVersionAttribute(`"$Version.0`")]"
@@ -50,14 +56,14 @@ try {
         if ($clientId -notmatch '^\S+\.apps\.googleusercontent\.com$' -or $clientSecret -match '\s') {
             throw 'Supply valid Google Desktop OAuth client credentials.'
         }
-        $oauthResource = [IO.Path]::GetTempFileName()
+        $oauthResource = Join-Path $metadata 'GoogleOAuthClient.private.json'
         @{ ClientId = $clientId; ClientSecret = $clientSecret } | ConvertTo-Json -Compress | Set-Content -LiteralPath $oauthResource -Encoding utf8
         $resources += "/resource:$oauthResource,GoogleOAuthClient,private"
     }
     & $compiler /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 "/win32manifest:$manifest" "/win32icon:$icon" "/out:$file" $resources $references $sources $versionSource
     if ($LASTEXITCODE -ne 0) { throw "Build failed with code $LASTEXITCODE" }
 } finally {
-    Remove-Item -LiteralPath $versionSource -ErrorAction SilentlyContinue
+    # Keep this run's version metadata. Never clean existing output or user temp folders.
     if ($null -ne $oauthResource) { Remove-Item -LiteralPath $oauthResource -ErrorAction SilentlyContinue }
 }
 Get-Item -LiteralPath $file

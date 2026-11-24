@@ -270,75 +270,87 @@ namespace Toolbox
         private static async Task<int> SubmitApplications(List<Decision> ready, Settings settings, string account,
             List<Entry> journal, List<Entry> previous, Func<Slot, Task<int>> apply, Action save, Action<string> progress)
         {
-            const int parallelism = 3;
-            var stop = false;
+            const int noResponse = 0;
+            const int timedOut = -1;
+            const int maxAttempts = 10;
+            var delay = TimeSpan.FromMilliseconds(67);
+            string stopReason = null;
             var sent = 0;
-            for (var offset = 0; offset < ready.Count; offset += parallelism)
+            for (var index = 0; index < ready.Count; index++)
             {
-                if (stop)
+                var row = ready[index];
+                if (stopReason != null)
                 {
-                    foreach (var unsent in ready.Skip(offset))
-                    {
-                        unsent.Status = "Not sent";
-                        unsent.Reason = "The run stopped after a Sling connection, rate-limit, or server error.";
-                    }
-                    break;
+                    row.Status = "Not sent";
+                    row.Reason = stopReason;
+                    continue;
                 }
 
-                var batch = ready.Skip(offset).Take(parallelism).ToList();
-                var entries = batch.Select(row => new Entry { Account = account, State = "Uncertain", Shift = row.Shift }).ToList();
-                journal.AddRange(entries);
+                if (!settings.Demo && row.Shift.Start <= DateTimeOffset.UtcNow)
+                {
+                    row.Status = "Not sent";
+                    row.Reason = "The shift started before its request could be sent.";
+                    continue;
+                }
+
+                var entry = new Entry { Account = account, State = "Uncertain", Shift = row.Shift };
+                journal.Add(entry);
                 save();
 
-                progress("Submitting " + (offset + 1) + "–" + (offset + batch.Count) + " of " + ready.Count + " selected shifts…");
-                var codes = await Task.WhenAll(batch.Select(row => SendApplication(row.Shift, apply)));
-                for (var index = 0; index < batch.Count; index++)
+                progress("Submitting " + (index + 1) + " of " + ready.Count + " selected shifts…");
+                int code = noResponse;
+                int attempt;
+                for (attempt = 1; ; attempt++)
                 {
-                    var row = batch[index];
-                    var entry = entries[index];
-                    var code = codes[index];
-                    if (code == 201)
+                    try { code = await apply(row.Shift); }
+                    catch (OperationCanceledException) { code = timedOut; }
+                    catch (HttpRequestException) { code = noResponse; }
+                    if (code != 417 || attempt == maxAttempts) break;
+                    delay += TimeSpan.FromMilliseconds(50);
+                    progress("Submitting " + (index + 1) + " of " + ready.Count + " selected shifts · attempt " + (attempt + 1) + " of " + maxAttempts + "…");
+                    if (!settings.Demo) await Task.Delay(delay);
+                    if (!settings.Demo && row.Shift.Start <= DateTimeOffset.UtcNow) break;
+                }
+                if (code == 201)
+                {
+                    sent++;
+                    entry.State = "Submitted";
+                    row.Status = "Submitted";
+                    row.Reason = settings.Demo ? "Simulated application. " + row.Reason : "Sling accepted your application. " + row.Reason;
+                    previous.Add(entry);
+                }
+                else if (code == noResponse || code == timedOut || code == 408 || code >= 500 || code >= 200 && code < 300)
+                {
+                    row.Status = "Check Sling";
+                    row.Reason = code == timedOut || code == 408 ? "The Sling request timed out. Check Sling before trying again." :
+                        "The submission outcome could not be verified. Check Sling before trying again.";
+                    previous.Add(entry);
+                    stopReason = "Paused after a request could not be verified. Preview again before continuing.";
+                }
+                else
+                {
+                    journal.Remove(entry);
+                    row.Status = "Declined";
+                    switch (code)
                     {
-                        sent++;
-                        entry.State = "Submitted";
-                        row.Status = "Submitted";
-                        row.Reason = settings.Demo ? "Simulated application. " + row.Reason : "Sling accepted your application. " + row.Reason;
-                        previous.Add(entry);
+                        case 400: row.Reason = "Sling declined the shift request (HTTP 400). Preview again to check its availability."; break;
+                        case 404: row.Reason = "Sling could no longer find this shift (HTTP 404)."; break;
+                        case 405: row.Reason = "Sling did not permit this employee to apply for the shift (HTTP 405)."; break;
+                        case 409: row.Reason = "Sling would not accept this application in the shift's current state (HTTP 409)."; break;
+                        case 417: row.Reason = "Sling rejected the request (HTTP 417) after " + attempt + (attempt == 1 ? " attempt." : " attempts."); break;
+                        case 429: row.Reason = "Sling rate-limited the request (HTTP 429). Preview again before retrying."; break;
+                        default: row.Reason = "Sling declined the request (HTTP " + code + ")."; break;
                     }
-                    else if (code == 0 || code >= 500 || code >= 200 && code < 300)
-                    {
-                        row.Status = "Check Sling";
-                        row.Reason = "The submission outcome could not be verified. Check Sling before trying again.";
-                        previous.Add(entry);
-                        stop = true;
-                    }
-                    else
-                    {
-                        journal.Remove(entry);
-                        row.Status = "Declined";
-                        switch (code)
-                        {
-                            case 400: row.Reason = "Sling reported that this shift was cancelled (HTTP 400)."; break;
-                            case 404: row.Reason = "Sling could no longer find this shift (HTTP 404)."; break;
-                            case 405: row.Reason = "Sling did not permit this employee to apply for the shift (HTTP 405)."; break;
-                            case 409: row.Reason = "Sling would not accept this application in the shift's current state (HTTP 409)."; break;
-                            case 417: row.Reason = "Sling rejected the HTTP request (HTTP 417). Preview again before retrying."; break;
-                            case 429: row.Reason = "Sling rate-limited the request (HTTP 429). Preview again before retrying."; break;
-                            default: row.Reason = "Sling declined the request (HTTP " + code + ")."; break;
-                        }
-                        stop |= code == 401 || code == 403 || code == 429 || code >= 300 && code < 400;
-                    }
+                    if (code == 417 && attempt == maxAttempts)
+                        stopReason = "Paused after 10 HTTP 417 rejections for one shift. Preview again before continuing.";
+                    else if (code == 401 || code == 403 || code == 429 || code >= 300 && code < 400)
+                        stopReason = "Paused after a Sling access or request limit error. Preview again before continuing.";
                 }
                 save();
+                if (stopReason == null && !settings.Demo && index + 1 < ready.Count)
+                    await Task.Delay(delay);
             }
             return sent;
-        }
-
-        private static async Task<int> SendApplication(Slot shift, Func<Slot, Task<int>> apply)
-        {
-            try { return await apply(shift).ConfigureAwait(false); }
-            catch (HttpRequestException) { return 0; }
-            catch (OperationCanceledException) { return 0; }
         }
 
         private static Slot Pending(Slot shift)

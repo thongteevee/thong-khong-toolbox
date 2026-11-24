@@ -1,273 +1,140 @@
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Data;
 using System.Windows.Markup;
+using Forms = System.Windows.Forms;
 
 namespace Toolbox.WinOpt
 {
-    internal sealed class CandidateRow : INotifyPropertyChanged
-    {
-        internal Candidate File { get; private set; }
-        private bool selected;
-        public bool Selected { get { return selected; } set { selected = value; if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Selected")); } }
-        public string Path { get { return File.Path; } }
-        public string Name { get { return System.IO.Path.GetFileName(File.Path); } }
-        public string Category { get { return File.Category; } }
-        public string Size { get { return File.Size; } }
-        public long Bytes { get { return File.Bytes; } }
-        public DateTime Modified { get { return File.Modified; } }
-        public event PropertyChangedEventHandler PropertyChanged;
-        internal CandidateRow(Candidate file) { File = file; }
-    }
-
     internal sealed class WinOptView : UserControl
     {
         private readonly Grid root;
-        private ObservableCollection<CandidateRow> rows = new ObservableCollection<CandidateRow>();
-        private readonly MaintenanceLog log;
-        private ScanResult preview;
+        private readonly ObservableCollection<string> folders = new ObservableCollection<string>();
         private CancellationTokenSource cancellation;
         private bool busy;
-        private bool updatingSelection;
-        private bool changingAdvanced;
-        private bool Advanced { get { return Tag is bool && (bool)Tag; } }
         internal bool IsWorking { get { return busy; } }
         internal void CancelOperation()
-        { if (cancellation != null) cancellation.Cancel(); Status("Cancelling… Close again after the operation finishes."); }
+        { if (cancellation != null) cancellation.Cancel(); Status("Cancelling the read-only scan…"); }
 
         internal WinOptView()
         {
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("WinOpt.xaml")) root = (Grid)XamlReader.Load(stream);
-            Content = root; Background = root.Background; FontFamily = new System.Windows.Media.FontFamily("Segoe UI"); Tag = false;
-            log = new MaintenanceLog(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThongKhongToolbox", "WinOpt", "Logs"));
-            BindCandidates();
-            Get<CheckBox>("AdvancedMode").Checked += delegate { ChangeAdvancedMode(); };
-            Get<CheckBox>("AdvancedMode").Unchecked += delegate { ChangeAdvancedMode(); };
-            Get<Button>("OpenCleanup").Click += delegate { Get<TabControl>("Sections").SelectedIndex = 1; };
-            Get<Button>("ExpandFiles").Click += delegate { CreateFileReview().ShowDialog(); };
-            Get<Button>("CopyOutcome").Click += delegate { CopyLatestResult(Clipboard.SetText); };
-            Get<Thumb>("FileListGrip").DragDelta += delegate(object sender, DragDeltaEventArgs args)
+            Content = root; Background = root.Background;
+            Get<ListBox>("Folders").ItemsSource = folders;
+            Get<Button>("AddFolder").Click += delegate { ChooseFolder(); };
+            Get<Button>("UnselectFolder").Click += delegate
             {
-                var row = (RowDefinition)root.FindName("FileListRow");
-                row.Height = new GridLength(Math.Max(400, row.Height.Value + args.VerticalChange));
+                var selected = Get<ListBox>("Folders").SelectedItem as string;
+                if (selected != null) { folders.Remove(selected); ClearResults(); }
             };
-            Get<ComboBox>("Mode").SelectionChanged += delegate { InvalidatePreview(); };
-            Get<CheckBox>("WindowsTemp").Checked += delegate { InvalidatePreview(); };
-            Get<CheckBox>("WindowsTemp").Unchecked += delegate { InvalidatePreview(); };
-            Get<TextBox>("Exclusions").TextChanged += delegate { InvalidatePreview(); };
-            Get<Button>("Scan").Click += async delegate { await Scan(); };
-            Get<Button>("DryRun").Click += async delegate { await Clean(true); };
-            Get<Button>("Clean").Click += async delegate { await Clean(false); };
-            Get<Button>("Cancel").Click += delegate { if (cancellation != null) { cancellation.Cancel(); Status("Cancelling… Completed work will be reported."); } };
-            Get<Button>("SelectAll").Click += delegate { SetAll(true); };
-            Get<Button>("SelectNone").Click += delegate { SetAll(false); };
-            Get<Button>("RefreshDrives").Click += async delegate { await RefreshDrives(); };
-            foreach (var action in new[] { "Optimize", "Storage", "Recommendations", "Recycle", "TaskManager", "StartupApps", "InstalledApps" })
+            Get<Button>("OpenDuplicates").Click += delegate { Get<TabControl>("Sections").SelectedIndex = 1; };
+            Get<Button>("Scan").Click += async delegate { await FindDuplicates(); };
+            Get<Button>("Cancel").Click += delegate { CancelOperation(); };
+            Get<TextBox>("Exclusions").TextChanged += delegate { if (!busy) ClearResults(); };
+            Get<CheckBox>("Subfolders").Checked += delegate { if (!busy) ClearResults(); };
+            Get<CheckBox>("Subfolders").Unchecked += delegate { if (!busy) ClearResults(); };
+            Get<ListBox>("Groups").SelectionChanged += delegate
+            {
+                var group = Get<ListBox>("Groups").SelectedItem as DuplicateGroup;
+                Get<DataGrid>("Matches").ItemsSource = group == null ? null : group.Files;
+                Get<TextBlock>("GroupDescription").Text = group == null ? "Choose a matching group to review its files." : group.Description;
+                Get<TextBox>("SelectedPath").Text = "";
+            };
+            Get<DataGrid>("Matches").SelectionChanged += delegate
+            {
+                var file = Get<DataGrid>("Matches").SelectedItem as DuplicateFile;
+                Get<TextBox>("SelectedPath").Text = file == null ? "" : file.Path;
+            };
+            Get<Button>("RefreshDrives").Click += async delegate
+            {
+                await Operation("Reading drive information…", async token =>
+                {
+                    Get<ItemsControl>("Drives").ItemsSource = await Task.Run(() => WindowsStorage.ReadDrives(token));
+                    Status(token.IsCancellationRequested ? "Drive refresh cancelled." : "Drive information refreshed. No files changed.");
+                });
+            };
+            foreach (var action in new[] { "TaskManager", "StartupApps", "InstalledApps" })
             {
                 var target = action;
                 Get<Button>(action).Click += delegate
                 {
                     try { WindowsStorage.Open(target); }
-                    catch (Exception e) { MessageBox.Show(Window.GetWindow(this), "Windows could not open this page. " + e.GetBaseException().Message, "WinOpt", MessageBoxButton.OK, MessageBoxImage.Information); }
+                    catch (Exception e) { Status("Windows could not open this tool: " + e.GetBaseException().Message); }
                 };
             }
-            Loaded += async delegate { Get<TextBlock>("Recent").Text = log.Recent(); await RefreshDrives(); };
-            Get<TextBlock>("TempLocation").Text = "User temporary folder: " + System.IO.Path.GetTempPath();
-            UpdateSelection();
+            UpdateControls();
         }
-
         private T Get<T>(string name) where T : FrameworkElement { return (T)root.FindName(name); }
-        private void BindCandidates()
-        {
-            var view = CollectionViewSource.GetDefaultView(rows);
-            using (view.DeferRefresh())
-            {
-                view.SortDescriptions.Clear();
-                view.SortDescriptions.Add(new SortDescription("Bytes", ListSortDirection.Descending));
-                view.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
-            }
-            var grid = Get<DataGrid>("Candidates");
-            grid.ItemsSource = rows;
-            foreach (var column in grid.Columns) column.SortDirection = null;
-            grid.Columns[3].SortDirection = ListSortDirection.Descending;
-        }
-
-        internal void CopyLatestResult(Action<string> copy)
-        {
-            if (busy || !Get<Button>("CopyOutcome").IsEnabled) return;
-            var text = Get<TextBlock>("Outcome").Text;
-            if (Advanced) text += Environment.NewLine + Get<TextBlock>("OutcomeDetails").Text;
-            try { copy(text); Status("Result copied"); }
-            catch (ExternalException) { Status("Clipboard busy. Try again."); }
-        }
-
-        private void ChangeAdvancedMode()
-        {
-            if (changingAdvanced) return;
-            var toggle = Get<CheckBox>("AdvancedMode");
-            if (busy)
-            {
-                changingAdvanced = true;
-                toggle.IsChecked = Advanced;
-                changingAdvanced = false;
-                return;
-            }
-            Tag = toggle.IsChecked == true;
-            if (!Advanced)
-            {
-                Get<ComboBox>("Mode").SelectedIndex = 0;
-                Get<CheckBox>("WindowsTemp").IsChecked = false;
-            }
-            var grid = Get<DataGrid>("Candidates");
-            ((DataGridTextColumn)grid.Columns[1]).Binding = new Binding(Advanced ? "Path" : "Name");
-            grid.Columns[2].Visibility = grid.Columns[4].Visibility = Advanced ? Visibility.Visible : Visibility.Collapsed;
-            InvalidatePreview();
-        }
-
-        internal Window CreateFileReview()
-        {
-            var source = Get<DataGrid>("Candidates");
-            var grid = new DataGrid { ItemsSource = rows, Style = (Style)root.FindResource(typeof(DataGrid)), MinHeight = 400, ColumnHeaderHeight = 34 };
-            foreach (var column in source.Columns)
-            {
-                var template = column as DataGridTemplateColumn;
-                var text = column as DataGridTextColumn;
-                DataGridColumn copy = template != null ? (DataGridColumn)new DataGridTemplateColumn { CellTemplate = template.CellTemplate } :
-                    new DataGridTextColumn { Binding = text.Binding, ElementStyle = text.ElementStyle, IsReadOnly = true };
-                copy.Header = column.Header; copy.Width = column.Width; copy.MinWidth = column.MinWidth;
-                copy.Visibility = column.Visibility; copy.SortMemberPath = column.SortMemberPath;
-                grid.Columns.Add(copy);
-            }
-            var panel = new DockPanel { Margin = new Thickness(16) };
-            var done = new Button { Content = "Done", Style = (Style)root.FindResource(typeof(Button)), HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
-            DockPanel.SetDock(done, Dock.Bottom); panel.Children.Add(done); panel.Children.Add(grid);
-            var area = SystemParameters.WorkArea;
-            var window = new Window { Title = "Temporary files", Content = panel, Width = Math.Min(1200, area.Width * .94), Height = Math.Min(820, area.Height * .9),
-                MinWidth = Math.Min(600, area.Width * .94), MinHeight = Math.Min(520, area.Height * .9), FontFamily = FontFamily, FontSize = 14,
-                ResizeMode = ResizeMode.CanResize, WindowStartupLocation = WindowStartupLocation.CenterOwner };
-            foreach (var key in new[] { "WindowFill", "SurfaceFill", "Ink", "Muted", "ControlLine", "ControlHover", "PrimaryFill", "PrimaryInk", "Line" })
-            {
-                var resource = TryFindResource(key);
-                if (resource != null) window.Resources[key] = resource;
-            }
-            window.SetResourceReference(Window.BackgroundProperty, "WindowFill");
-            window.SetResourceReference(Window.ForegroundProperty, "Ink");
-            var owner = Window.GetWindow(this);
-            if (owner != null) window.Owner = owner;
-            done.Click += delegate { window.Close(); };
-            return window;
-        }
-        private void Status(string text) { Get<TextBlock>("Status").Text = text; }
-        private void InvalidatePreview()
+        private void Status(string value) { Get<TextBlock>("Status").Text = value; }
+        private void ChooseFolder()
         {
             if (busy) return;
-            preview = null; rows.Clear(); Get<TextBlock>("PreviewSummary").Text = "";
-            Get<TextBlock>("Categories").Text = ""; Get<TextBlock>("Skipped").Text = ""; UpdateSelection();
+            using (var picker = new Forms.FolderBrowserDialog { Description = "Choose a folder for read-only duplicate discovery", ShowNewFolderButton = false })
+            {
+                if (picker.ShowDialog() != Forms.DialogResult.OK) return;
+                try
+                {
+                    var path = PathPolicy.Canonical(picker.SelectedPath);
+                    if (!folders.Contains(path, StringComparer.OrdinalIgnoreCase)) folders.Add(path);
+                    ClearResults();
+                }
+                catch (Exception e) { Status("Folder could not be selected: " + e.GetBaseException().Message); }
+            }
         }
-        private void UpdateSelection()
+        private void ClearResults()
         {
-            if (updatingSelection) return;
-            Get<FrameworkElement>("EmptyFiles").Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            Get<TextBlock>("EmptyFilesText").Text = busy ? "Working…" : preview == null ? "Scan to find temporary files" :
-                preview.Cancelled || preview.Limited ? "No files in this preview" : "Nothing to clean";
-            var selected = rows.Where(r => r.Selected).ToArray();
-            Get<TextBlock>("Selection").Text = selected.Length + " selected · " + StorageFormat.Bytes(selected.Sum(r => r.File.Bytes));
-            var eligible = !busy && preview != null && !preview.Consumed && selected.Length > 0;
-            Get<Button>("Clean").IsEnabled = eligible; Get<Button>("DryRun").IsEnabled = eligible;
-            Get<Button>("SelectAll").IsEnabled = !busy && rows.Count > 0; Get<Button>("SelectNone").IsEnabled = !busy && rows.Count > 0;
+            Get<ListBox>("Groups").ItemsSource = null; Get<DataGrid>("Matches").ItemsSource = null;
+            Get<TextBox>("SelectedPath").Text = "";
+            Get<TextBlock>("GroupDescription").Text = "Choose a matching group to review its files.";
+            Get<TextBlock>("Summary").Text = "Choose folders, then find duplicate contents. No file is selected for removal.";
+            Get<TextBlock>("Outcome").Text = "No duplicate scan yet.";
+            UpdateControls();
         }
-        private void SetAll(bool selected)
+        private void UpdateControls()
         {
-            updatingSelection = true;
-            try { foreach (var row in rows) row.Selected = selected; }
-            finally { updatingSelection = false; UpdateSelection(); }
+            Get<FrameworkElement>("Scope").IsEnabled = !busy;
+            Get<Button>("Scan").IsEnabled = !busy && folders.Count > 0;
+            Get<Button>("RefreshDrives").IsEnabled = !busy;
+            Get<Button>("Cancel").IsEnabled = busy;
         }
         private async Task Operation(string message, Func<CancellationToken, Task> action)
         {
             if (busy) return;
-            busy = true; cancellation = new CancellationTokenSource();
-            foreach (var name in new[] { "Policy", "Scan", "Candidates", "RefreshDrives", "AdvancedMode", "ExpandFiles", "FileListGrip" }) Get<FrameworkElement>(name).IsEnabled = false;
-            Get<Button>("Cancel").IsEnabled = true; Get<ProgressBar>("Progress").Value = 0; Get<ProgressBar>("Progress").IsIndeterminate = true;
-            UpdateSelection(); Status(message);
-            var complete = false;
-            try { await action(cancellation.Token); complete = !cancellation.IsCancellationRequested; }
-            catch (Exception e) { Status("Operation stopped: " + e.GetBaseException().Message); }
+            busy = true; cancellation = new CancellationTokenSource(); UpdateControls(); Status(message);
+            Get<ProgressBar>("Progress").IsIndeterminate = true;
+            try { await action(cancellation.Token); }
+            catch (Exception e) { Status("Scan stopped: " + e.GetBaseException().Message + " No files were changed."); }
             finally
             {
                 busy = false; cancellation.Dispose(); cancellation = null;
-                foreach (var name in new[] { "Policy", "Scan", "Candidates", "RefreshDrives", "AdvancedMode", "ExpandFiles", "FileListGrip" }) Get<FrameworkElement>(name).IsEnabled = true;
-                Get<Button>("Cancel").IsEnabled = false; Get<ProgressBar>("Progress").IsIndeterminate = false;
-                Get<ProgressBar>("Progress").Value = complete ? 100 : 0;
-                Get<TextBlock>("Recent").Text = log.Recent(); UpdateSelection();
+                Get<ProgressBar>("Progress").IsIndeterminate = false; UpdateControls();
             }
         }
-        private async Task Scan()
+        private async Task FindDuplicates()
         {
-            await Operation("Scanning…", async token =>
+            if (busy || folders.Count == 0) return;
+            ClearResults();
+            await Operation("Discovering files. Read-only…", async token =>
             {
-                preview = null; rows.Clear();
-                var mode = Advanced ? (CleanupMode)Get<ComboBox>("Mode").SelectedIndex : CleanupMode.Safe;
                 var exclusions = Get<TextBox>("Exclusions").Text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                var policy = new ScanPolicy(mode, PathPolicy.ProductionRoots(Advanced && Get<CheckBox>("WindowsTemp").IsChecked == true), exclusions, DateTime.UtcNow);
-                var progress = new Progress<int>(count => Status("Scanning… " + count.ToString("N0") + " files checked"));
-                preview = await Task.Run(() => new TempScanner().Scan(policy, token, progress));
-                // Build once and swap the collection: per-item Add raises one UI notification per candidate.
-                var built = preview.Files.Select(file => new CandidateRow(file)).ToList();
-                foreach (var row in built) row.PropertyChanged += delegate { UpdateSelection(); };
-                rows = new ObservableCollection<CandidateRow>(built);
-                BindCandidates();
-                var partial = preview.Cancelled ? "Cancelled · partial results. " : preview.Limited ? "Partial results. " : "";
-                Get<TextBlock>("PreviewSummary").Text = partial + rows.Count.ToString("N0") + " files · " + StorageFormat.Bytes(preview.Bytes);
-                Get<TextBlock>("Categories").Text = string.Join("   •   ", preview.Files.GroupBy(f => f.Category).Select(g => g.Key + ": " + g.Count() + " files / " + StorageFormat.Bytes(g.Sum(f => f.Bytes))));
-                Get<TextBlock>("Skipped").Text = "Skipped: " + (preview.Reasons.Count == 0 ? "none" : StorageFormat.Reasons(preview.Reasons)) +
-                    " · Rescan after " + preview.Policy.CreatedUtc.Add(CleanupService.PreviewLifetime).ToLocalTime().ToString("t");
-                var warning = log.Write("scan", rows.Count, preview.Reasons.Values.Sum(), 0, preview.Bytes, preview.Cancelled, preview.Reasons);
-                Status(partial + "Select files to clean. " + warning);
-            });
-        }
-        private async Task Clean(bool dryRun)
-        {
-            var selected = rows.Where(r => r.Selected).Select(r => r.File).ToArray();
-            if (busy || preview == null || selected.Length == 0) return;
-            if (!dryRun && MessageBox.Show(Window.GetWindow(this),
-                "Delete " + selected.Length.ToString("N0") + " temporary files (" + StorageFormat.Bytes(selected.Sum(f => f.Bytes)) + ")?\n\nPermanent deletion. This cannot be undone.",
-                "Confirm selected cleanup", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-            var snapshot = preview;
-            await Operation(dryRun ? "Checking selected files without deletion…" : "Cleaning selected files…", async token =>
-            {
-                var progress = new Progress<int>(count => Status((dryRun ? "Checking… " : "Cleaning… ") + count + " / " + selected.Length));
-                var result = await Task.Run(() => new CleanupService().Run(snapshot, selected, dryRun, token, progress));
-                var logWarning = log.Write(dryRun ? "dry-run" : "cleanup", result.Completed, result.Skipped, result.Failed, result.Bytes, result.Cancelled, result.Reasons);
-                var summary = (result.Cancelled ? "Cancelled · " : "") + result.Completed + (dryRun ? " files ready" : " files deleted") +
-                    " · " + StorageFormat.Bytes(result.Bytes) + (result.Skipped > 0 ? " · " + result.Skipped + " skipped" : "") + (result.Failed > 0 ? " · " + result.Failed + " failed" : "");
-                var observations = string.Join(Environment.NewLine, result.Volumes.Select(v => v.Volume + " free before: " + (v.Before.HasValue ? StorageFormat.Bytes(v.Before.Value) : "unavailable") +
-                    " · after: " + (v.After.HasValue ? StorageFormat.Bytes(v.After.Value) : "unavailable") + " · observed change: " + (v.Delta.HasValue ? StorageFormat.Bytes(v.Delta.Value) : "unavailable")));
-                Get<TextBlock>("Outcome").Text = summary;
-                Get<Button>("CopyOutcome").IsEnabled = true;
-                Get<TextBlock>("OutcomeDetails").Text = observations + Environment.NewLine +
-                    "Free-space changes include other disk activity and may differ from deleted bytes. " + StorageFormat.Reasons(result.Reasons) + " " + logWarning;
-                if (!dryRun) { SetAll(false); Get<TextBlock>("PreviewSummary").Text = "Scan again to refresh."; }
-                Get<TabControl>("Sections").SelectedIndex = 2;
-                Status(summary + (dryRun ? " · No files deleted" : "") + (String.IsNullOrEmpty(logWarning) ? "" : " · " + logWarning));
-            });
-        }
-        private async Task RefreshDrives()
-        {
-            await Operation("Loading drives…", async token =>
-            {
-                var drives = await Task.Run(() => WindowsStorage.ReadDrives(token));
-                Get<ItemsControl>("Drives").ItemsSource = drives;
-                Status(token.IsCancellationRequested ? "Cancelled" : "Drives updated");
+                var options = new DuplicateOptions(folders, exclusions, Get<CheckBox>("Subfolders").IsChecked == true);
+                var progress = new Progress<DuplicateProgress>(p => Status(p.Phase + " · " + p.Entries.ToString("N0") + " entries · " + p.Hashed.ToString("N0") + " files hashed"));
+                var result = await Task.Run(() => new DuplicateScanner().Scan(options, token, progress));
+                Get<ListBox>("Groups").ItemsSource = result.Groups;
+                if (result.Groups.Count > 0) Get<ListBox>("Groups").SelectedIndex = 0;
+                var partial = result.Cancelled ? "Cancelled · partial results. " : result.Limited ? "Entry limit reached · partial results. " : "Scan complete. ";
+                var summary = partial + result.Groups.Count.ToString("N0") + " duplicate-content groups · " + result.Groups.Sum(g => g.Count).ToString("N0") + " matching files. No files changed.";
+                Get<TextBlock>("Summary").Text = summary;
+                Get<TextBlock>("Outcome").Text = summary + Environment.NewLine + result.Entries.ToString("N0") + " entries inspected; " + result.Hashed.ToString("N0") + " files hashed." +
+                    Environment.NewLine + "Skipped: " + (result.Reasons.Count == 0 ? "none" : string.Join(" · ", result.Reasons.OrderBy(p => p.Key).Select(p => p.Key + ": " + p.Value))) +
+                    Environment.NewLine + "Content equality was verified while scanning. Files can change afterward. Matching content is not permission to remove a file.";
+                Status(summary);
             });
         }
     }

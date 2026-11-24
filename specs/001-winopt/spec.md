@@ -1,5 +1,9 @@
 # Feature Specification: WinOpt maintenance MVP
 
+> Historical specification. The user's 2026-11-23 data-protection rule and
+> [read-only duplicate discovery](../002-duplicate-discovery/spec.md) supersede
+> age-based cleanup. Do not run the old cleanup workflow against user data.
+
 **Feature**: `001-winopt` | **Created**: 2026-11-19 | **Status**: Accepted for implementation
 **Input**: Review and build from WinOpt_Codex_Project_Brief.md, adapting to the existing Toolbox.
 

@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32;
@@ -144,73 +143,24 @@ namespace Toolbox
         private static void ReplacePortable(string source, string target)
         {
             var staged = target + "." + Guid.NewGuid().ToString("N") + ".update";
-            // Keep exactly one previous executable for recovery, replaced on each update.
-            var backup = target + ".previous";
+            var backup = staged + ".backup";
             try
             {
                 File.Copy(source, staged);
-                if (File.Exists(backup)) File.Delete(backup);
                 File.Replace(staged, target, backup);
             }
             finally
             {
                 if (File.Exists(staged)) File.Delete(staged);
             }
-            RemoveLegacyBackups(target);
-        }
-
-        // Versions up to 0.1.13 left a uniquely named backup beside the portable app on every update.
-        private static readonly Regex LegacyBackup = new Regex(@"^ThongKhongToolbox\.exe\.[0-9a-f]{32}\.update\.backup$", RegexOptions.IgnoreCase);
-
-        internal static void RemoveLegacyBackups(string target)
-        {
-            try
-            {
-                foreach (var file in Directory.EnumerateFiles(Path.GetDirectoryName(target), "ThongKhongToolbox.exe.*.update.backup"))
-                    if (LegacyBackup.IsMatch(Path.GetFileName(file))) TryDelete(file);
-            }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
         }
 
         internal static string DownloadRoot { get { return Path.Combine(Path.GetTempPath(), "ThongKhongToolbox"); } }
 
-        // Each update downloads into its own %TEMP%\ThongKhongToolbox\<guid> folder. Remove folders
-        // older than a day (never one an update in progress is using). Only flat folders are removed.
+        // Retained for compatibility. Age is never permission to delete existing downloads.
         internal static void RemoveOldDownloads(string root, DateTime nowUtc)
         {
-            try
-            {
-                if (!Directory.Exists(root)) return;
-                if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) return;
-                foreach (var folder in Directory.EnumerateDirectories(root))
-                {
-                    var info = new DirectoryInfo(folder);
-                    if (!DownloadFolder.IsMatch(info.Name) || (info.Attributes & FileAttributes.ReparsePoint) != 0 ||
-                        nowUtc - info.CreationTimeUtc < TimeSpan.FromDays(1)) continue;
-                    try
-                    {
-                        var files = info.GetFileSystemInfos();
-                        if (files.Any(file => (file.Attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0 ||
-                            !new[] { "ThongKhongToolbox.exe", "ThongKhongToolboxSetup.exe", "SHA256SUMS.txt" }.Contains(file.Name, StringComparer.OrdinalIgnoreCase))) continue;
-                        foreach (var file in files) TryDelete(file.FullName);
-                        info.Delete(false);
-                    }
-                    catch (IOException) { }
-                    catch (UnauthorizedAccessException) { }
-                }
-            }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-        }
-
-        private static readonly Regex DownloadFolder = new Regex("^[0-9a-f]{32}$");
-
-        private static void TryDelete(string file)
-        {
-            try { File.Delete(file); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            // Intentionally no filesystem access or mutation.
         }
 
         private static string Quote(string value) { return "\"" + value + "\""; }

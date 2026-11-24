@@ -1,5 +1,9 @@
 # Test plan
 
+> Historical cleanup test plan. Do not execute this workflow. The current
+> `Test-WinOpt.ps1` runs only read-only duplicate discovery tests in new, retained
+> fixtures. See [current workflow](../../docs/duplicate-discovery.md).
+
 ## Automated (isolated fixtures only)
 
 `Test-WinOpt.ps1` compiles the core and a console harness using the Windows .NET

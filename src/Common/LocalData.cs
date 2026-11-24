@@ -8,8 +8,12 @@ namespace Toolbox
 {
     public static class LocalData
     {
+#if TOOLBOX_TEST_FIXTURES
+        internal static readonly string ToolboxFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "fixture-user-data");
+#else
         internal static readonly string ToolboxFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThongKhongToolbox");
+#endif
         private static readonly string Folder = Path.Combine(ToolboxFolder, "Sling");
         public static JavaScriptSerializer Json() { return new JavaScriptSerializer { MaxJsonLength = 24 * 1024 * 1024 }; }
 

@@ -238,6 +238,7 @@
     </Style>
     <DataTemplate x:Key="ResultTemplate">
       <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
+        <StackPanel>
         <ToggleButton Style="{StaticResource ResultToggle}" IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                       IsEnabled="{Binding CanApply}" AutomationProperties.Name="{Binding SelectionLabel}"
                       ToolTip="{Binding Reason}" ToolTipService.ShowOnDisabled="True">
@@ -252,6 +253,17 @@
             <TextBlock Text="{Binding Reason}" Style="{StaticResource Caption}"/>
           </StackPanel>
         </ToggleButton>
+          <Expander Header="Sling error details" Margin="36,0,10,8">
+            <Expander.Style>
+              <Style TargetType="Expander">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers><DataTrigger Binding="{Binding HasDiagnostics}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+              </Style>
+            </Expander.Style>
+            <TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="210"
+                     VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Sling error details" Margin="0,5,0,0"/>
+          </Expander>
+        </StackPanel>
       </Border>
     </DataTemplate>
   </Grid.Resources>
@@ -294,7 +306,7 @@
           <TextBlock Text="Auto Apply" Style="{StaticResource RailNavLabel}"/>
         </StackPanel>
       </RadioButton>
-      <RadioButton x:Name="WinOptNav" ToolTip="WinOpt storage maintenance" AutomationProperties.Name="WinOpt"
+      <RadioButton x:Name="WinOptNav" ToolTip="WinOpt read-only duplicate discovery" AutomationProperties.Name="WinOpt"
                    GroupName="HubViews" Style="{StaticResource RailNavigation}">
         <StackPanel Orientation="Horizontal">
           <TextBlock Text="&#xEDA2;" Style="{StaticResource NavGlyph}" Width="20"/>

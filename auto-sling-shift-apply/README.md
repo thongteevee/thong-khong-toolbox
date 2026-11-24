@@ -12,6 +12,8 @@ Open **Sling Shift Auto Apply** from Toolbox Home or the left rail. For account 
 
 **Today** returns to the current Eastern-time week. The refresh icon fetches that week's schedule again, including changes made in Sling since it was loaded.
 
+Auto apply sends one request at a time, starts with a 67 ms gap after each response, and uses a 12-second response timeout per request. After an HTTP 417 response, it adds 50 ms to the gap and retries the same shift up to 10 total attempts. A timeout shows **Check Sling** and pauses the remaining requests. Sling rate limits also pause the queue. Preview again to recheck the outcome before continuing.
+
 ## Live runs
 
 **Preview matches** opens **Results** with the calendar and shift checklist. Both calendars show submitted shifts as **Applied** while they await assignment. Results also shows applied shifts as read-only rows. Once Sling assigns a shift, it appears as booked. Use the arrows on **Week** to select the week you want to preview. Eligible shifts start checked. Select a **Needs confirmation** row to approve its listed class exception for that shift. Calendar commitments and assigned shifts can block a match. Pending applications and other offers do not block overlapping applications. **Auto apply** rechecks the schedule and submits only checked shifts that are still eligible. Sling approval and assignment follow the employer's settings. If a submission result is ambiguous, check the shift in Sling. The module journals submissions locally to avoid a repeat request.

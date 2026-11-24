@@ -16,7 +16,13 @@ namespace Toolbox.WinOpt
 
         internal CleanupResult Run(ScanResult preview, IEnumerable<Candidate> selection, bool dryRun, CancellationToken cancellation, IProgress<int> progress)
         {
-            if (preview == null) throw new InvalidOperationException("Scan before cleaning.");
+            throw new NotSupportedException("Cleanup is disabled. WinOpt only supports read-only file discovery.");
+        }
+
+        // Historical implementation retained for reference, unreachable from the application.
+        private CleanupResult LegacyRun(ScanResult preview, IEnumerable<Candidate> selection, bool dryRun, CancellationToken cancellation, IProgress<int> progress)
+        {
+            if (preview == null) throw new InvalidOperationException("Cleanup is disabled.");
             // A preview can never be replayed or changed by a cleanup caller.
             lock (preview)
             {

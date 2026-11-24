@@ -14,19 +14,17 @@ namespace Toolbox.Tests
     {
         internal static void Run()
         {
-            var root = Path.Combine(Path.GetTempPath(), "ToolboxRobustness-" + Guid.NewGuid().ToString("N"));
+            var root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ToolboxRobustness-" + Guid.NewGuid().ToString("N"));
+            if (Directory.Exists(root)) throw new InvalidOperationException("Expected a fresh fixture directory.");
             Directory.CreateDirectory(root);
-            try
-            {
-                UnreadableAccounts(root);
-                PreferenceRecovery(root);
-                IncompleteAccounts(root);
-                RedirectHandling();
-                DownloadCleanup(root);
-                PortableBackups(root);
-            }
-            finally { Directory.Delete(root, true); }
-            Console.WriteLine("Passed damaged/null preference recovery, incomplete accounts, sign-in redirects, scoped update cleanup, and portable backup checks.");
+            File.WriteAllText(Path.Combine(root, "created-by-this-test-run.txt"), "Isolated updater and preference fixtures. Retained after the run.");
+            UnreadableAccounts(root);
+            PreferenceRecovery(root);
+            IncompleteAccounts(root);
+            RedirectHandling();
+            DownloadCleanup(root);
+            PortableBackups(root);
+            Console.WriteLine("Passed damaged/null preference recovery, incomplete accounts, sign-in redirects, and preservation of updater downloads and backups.");
         }
 
         private static void UnreadableAccounts(string root)
@@ -132,7 +130,7 @@ namespace Toolbox.Tests
             var nested = Folder(downloads, Guid.NewGuid().ToString("N"), true);
             Directory.CreateDirectory(Path.Combine(nested, "keep"));
             ToolboxUpdater.RemoveOldDownloads(downloads, DateTime.UtcNow);
-            Require(!Directory.Exists(old), "An old update download was not removed.");
+            Require(Directory.Exists(old) && File.Exists(Path.Combine(old, "ThongKhongToolbox.exe")), "An old update download was changed despite the preservation policy.");
             Require(Directory.Exists(current) && Directory.Exists(other), "Cleanup removed a recent or unrelated folder.");
             Require(File.Exists(Path.Combine(mixed, "ThongKhongToolbox.exe")) && File.Exists(Path.Combine(mixed, "keep.txt")) &&
                 File.Exists(Path.Combine(nested, "ThongKhongToolbox.exe")), "Update cleanup changed a folder containing unrelated files or subfolders.");
@@ -156,6 +154,7 @@ namespace Toolbox.Tests
             var unrelated = Path.Combine(folder, "notes.update.backup");
             File.WriteAllText(target, "v1");
             File.WriteAllText(legacy, "v0");
+            File.WriteAllText(target + ".previous", "older backup");
             File.WriteAllText(unrelated, "keep");
             var replace = typeof(ToolboxUpdater).GetMethod("ReplacePortable", BindingFlags.NonPublic | BindingFlags.Static);
             foreach (var version in new[] { "v2", "v3" })
@@ -164,9 +163,11 @@ namespace Toolbox.Tests
                 File.WriteAllText(source, version);
                 replace.Invoke(null, new object[] { source, target });
             }
-            Require(File.ReadAllText(target) == "v3" && File.ReadAllText(target + ".previous") == "v2", "Portable update did not keep one previous copy.");
-            Require(!File.Exists(legacy) && File.Exists(unrelated) && Directory.GetFiles(folder).Length == 3,
-                "Portable update left extra backups or removed an unrelated file.");
+            var backups = Directory.GetFiles(folder, "ThongKhongToolbox.exe.*.update.backup").Select(File.ReadAllText).OrderBy(text => text).ToArray();
+            Require(File.ReadAllText(target) == "v3" && backups.SequenceEqual(new[] { "v0", "v1", "v2" }),
+                "Portable updates did not preserve each previous executable.");
+            Require(File.ReadAllText(target + ".previous") == "older backup" && File.ReadAllText(unrelated) == "keep",
+                "Portable updates changed a pre-existing backup.");
         }
 
         private static void Require(bool condition, string message) { if (!condition) throw new Exception(message); }

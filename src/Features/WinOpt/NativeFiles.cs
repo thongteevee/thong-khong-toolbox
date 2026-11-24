@@ -39,8 +39,6 @@ namespace Toolbox.WinOpt
             internal FILETIME Created, Accessed, Modified;
             internal uint Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
         }
-        [StructLayout(LayoutKind.Sequential)]
-        private struct Disposition { [MarshalAs(UnmanagedType.U1)] internal bool Delete; }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern SafeFileHandle CreateFile(string path, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
@@ -49,9 +47,6 @@ namespace Toolbox.WinOpt
         private static extern bool GetFileInformationByHandle(SafeFileHandle handle, out Info info);
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern uint GetFinalPathNameByHandle(SafeFileHandle handle, StringBuilder path, uint count, uint flags);
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetFileInformationByHandle(SafeFileHandle handle, int type, ref Disposition info, uint size);
 
         internal sealed class Pins : IDisposable
         {
@@ -87,8 +82,9 @@ namespace Toolbox.WinOpt
 
         internal static SafeFileHandle OpenFile(string path, bool deletionAccess)
         {
+            if (deletionAccess) throw new NotSupportedException("Write and deletion access are disabled for WinOpt discovery.");
             // OPEN_REPARSE_POINT inspects the link itself; share=0 refuses active users.
-            return Open(path, 0x80000000u | (deletionAccess ? 0x10000u : 0u), 0, 0x00200000);
+            return Open(path, 0x80000000u, 0, 0x00200000);
         }
 
         private static SafeFileHandle Open(string path, uint access, uint share, uint flags)
@@ -130,9 +126,7 @@ namespace Toolbox.WinOpt
 
         internal static void Delete(SafeFileHandle handle)
         {
-            var disposition = new Disposition { Delete = true };
-            if (!SetFileInformationByHandle(handle, 4, ref disposition, (uint)Marshal.SizeOf(typeof(Disposition))))
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+            throw new NotSupportedException("File deletion is disabled. WinOpt only supports read-only file discovery.");
         }
     }
 }
