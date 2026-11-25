@@ -24,6 +24,7 @@ namespace Toolbox
         private readonly Lazy<Task<Dictionary<string, string>>> groupNames;
         private readonly Func<string, string, CancellationToken, Task<object>> read;
         internal bool TimesheetsUnavailable { get; private set; }
+        internal int UnreadableOffers { get; private set; }
 
         internal SlingClient(SlingConnection connection, Func<string, string, CancellationToken, Task<object>> read = null)
         {
@@ -112,16 +113,28 @@ namespace Toolbox
         {
             var result = await Get("shifts/available?pagesize=500", "Sling available shifts").ConfigureAwait(false);
             var names = await groupNames.Value.ConfigureAwait(false);
-            var slots = Api.List(result, "Sling available shifts", "shifts", "events", "items", "data", "results", "availableShifts")
-                .Where(item => !Inactive(item) && !Inactive(Api.Pick(item, "shift")))
-                .Select(item =>
+            UnreadableOffers = 0;
+            var slots = new List<Slot>();
+            foreach (var item in Api.List(result, "Sling available shifts", "shifts", "events", "items", "data", "results", "availableShifts")
+                .Where(item => !Inactive(item) && !Inactive(Api.Pick(item, "shift"))))
+            {
+                // Check the start first so a malformed offer in another week cannot stop this week's preview.
+                DateTimeOffset start;
+                var startKnown = DateTimeOffset.TryParse(Api.Text(Api.Pick(item, "shift") ?? item, "dtstart"),
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out start);
+                if (startKnown && (start < from || start >= to)) continue;
+                var application = ApplicationStatus(item, account.User);
+                Slot slot;
+                try { slot = ParseShift(item, application == true ? "Pending" : "Available", names); }
+                catch (InvalidOperationException)
                 {
-                    var application = ApplicationStatus(item, account.User);
-                    var slot = ParseShift(item, application == true ? "Pending" : "Available", names);
-                    slot.ApplicationListKnown = application.HasValue;
-                    return slot;
-                })
-                .Where(slot => slot.Start >= from && slot.Start < to).ToList();
+                    // An unreadable offer is never applied for; the rest of the week stays usable.
+                    UnreadableOffers++;
+                    continue;
+                }
+                slot.ApplicationListKnown = application.HasValue;
+                slots.Add(slot);
+            }
             var known = slots.Where(slot => !String.IsNullOrEmpty(slot.Id) || !String.IsNullOrEmpty(slot.ApplyId))
                 .GroupBy(slot => (slot.Id ?? "") + "|" + (slot.ApplyId ?? "") + "|" + slot.Start.ToUniversalTime().ToString("o"))
                 .Select(group => group.FirstOrDefault(slot => slot.Kind == "Pending") ?? group.First());
@@ -269,7 +282,8 @@ namespace Toolbox
                 throw new InvalidOperationException("Sling returned an event with an unreadable start time.");
             if (!DateTimeOffset.TryParse(Api.Text(shift, "dtend"), CultureInfo.InvariantCulture, DateTimeStyles.None, out end) || end <= start)
             {
-                if (!open || kind != "Available") throw new InvalidOperationException("Sling returned an event with an unreadable end time.");
+                // Open-ended offers you already applied for are "Pending"; they still end at local midnight for display.
+                if (!open || kind != "Available" && kind != "Pending") throw new InvalidOperationException("Sling returned an event with an unreadable end time.");
                 end = Planner.At(Planner.Local(start).Date.AddDays(1), TimeSpan.Zero);
             }
             var id = Api.Text(shift, "id");

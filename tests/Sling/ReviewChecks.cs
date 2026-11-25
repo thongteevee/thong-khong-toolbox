@@ -46,6 +46,7 @@ namespace Toolbox.Tests
                 "1:2", journal, shift => { sent++; return Task.FromResult(201); }, () => {}, message => {}, new[] { offer });
             Require(sent == 1, "A definitively absent request could not be selected and submitted again.");
             await CheckSubmissionPacing(offer.Start);
+            await CheckUnreadableOffers();
             await CheckErrorDetails(offer);
 
             var folder = Path.GetFullPath(Path.Combine("dist", "SlingTests", "journal-review-" + Guid.NewGuid().ToString("N")));
@@ -105,6 +106,54 @@ namespace Toolbox.Tests
                 shift => { calls++; return Task.FromResult(417); }, () => {}, message => {}, offers);
             Require(calls == 10 && report.Results[0].Status == "Declined" && report.Results.Skip(1).All(row => row.Status == "Not sent" && row.Reason.Contains("417")) && journal.Count == 0,
                 "Repeated 417 rejections did not pause the remaining queue.");
+        }
+
+        private static async Task CheckUnreadableOffers()
+        {
+            var monday = Planner.Monday(Planner.Local(DateTimeOffset.UtcNow).Date).AddDays(7);
+            Func<int, int, string> at = (day, hour) => Planner.At(monday.AddDays(day), TimeSpan.FromHours(hour)).ToString("o");
+            Func<string, string, string, Dictionary<string, object>> offer = (id, start, end) =>
+            {
+                var item = new Dictionary<string, object> { { "id", id }, { "dtstart", start } };
+                if (end != null) item["dtend"] = end;
+                return item;
+            };
+            var openPending = offer("1", at(1, 9), null);
+            openPending["openEnd"] = true;
+            openPending["applied"] = true;
+            var laterOpenPending = offer("2", at(15, 9), null);
+            laterOpenPending["openEnd"] = true;
+            laterOpenPending["applied"] = true;
+            var shifts = new object[] {
+                openPending, laterOpenPending,
+                offer("3", at(20, 9), "not a time"),
+                offer("4", at(2, 9), "not a time"),
+                offer("5", "not a time", at(2, 12)),
+                offer("6", at(3, 9), at(3, 13)),
+            };
+            var client = new SlingClient(new SlingConnection { Org = "1", User = "2" }, (path, label, token) =>
+            {
+                if (path == "groups") return Task.FromResult<object>(new object[0]);
+                if (path.StartsWith("shifts/available")) return Task.FromResult<object>(new Dictionary<string, object> { { "shifts", shifts } });
+                throw new InvalidOperationException("Unexpected fixture request " + path);
+            });
+            var week = await client.Available(Planner.At(monday, TimeSpan.Zero), Planner.At(monday.AddDays(7), TimeSpan.Zero));
+            Require(week.Count == 2 && week.Any(slot => slot.Id == "6" && slot.Kind == "Available") &&
+                week.Any(slot => slot.Id == "1" && slot.Kind == "Pending" && slot.OpenEnd && slot.End > slot.Start),
+                "An open-ended pending offer or a malformed offer stopped the week's preview.");
+            Require(client.UnreadableOffers == 2, "Unreadable offers in the selected week were not counted, or other weeks were counted.");
+
+            var pendingEvent = new Dictionary<string, object> { { "id", "7" }, { "dtstart", at(1, 9) }, { "openEnd", true }, { "available", true },
+                { "user", new Dictionary<string, object> { { "id", "9" } } },
+                { "applications", new object[] { new Dictionary<string, object> { { "userId", "2" }, { "status", "pending" } } } } };
+            var schedule = SlingClient.ParseSchedule(new object[] { pendingEvent }, "2");
+            Require(schedule.Count == 1 && schedule[0].Kind == "Pending", "An open-ended pending shift stopped the schedule.");
+            try
+            {
+                SlingClient.ParseSchedule(new object[] { offer("8", at(1, 9), "not a time") }, "2");
+                throw new Exception("An unreadable booked shift was accepted");
+            }
+            catch (InvalidOperationException) { /* Booked shifts block conflicts, so unreadable ones must still stop the run. */ }
         }
 
         private static void Require(bool condition, string message) { if (!condition) throw new Exception(message); }

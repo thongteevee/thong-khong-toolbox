@@ -44,8 +44,9 @@ namespace Toolbox
                 entry.Shift.Start < until && entry.Shift.End > from).ToList();
             if (await RecheckPriorApplications(report, sling.Key, previous, sling.CheckApplication)) LocalData.Save("applications", journal);
             AddAppliedShifts(report, previous.Where(entry => entry.State == "Submitted").Select(entry => entry.Shift));
+            NoteUnreadableOffers(report, sling);
             await sling.EnrichTimesheets(report.Calendar);
-            if (sling.TimesheetsUnavailable) report.Note = "Schedule loaded. Some timesheet statuses could not be read from Sling.";
+            if (sling.TimesheetsUnavailable) AddNote(report, "Schedule loaded. Some timesheet statuses could not be read from Sling.");
             return report;
         }
 
@@ -87,6 +88,7 @@ namespace Toolbox
             var assigned = sling.Schedule(scheduleFrom, until);
             await Task.WhenAll(available, events, assigned);
             report.Shifts = await available;
+            NoteUnreadableOffers(report, sling);
             var scheduleUntil = report.Shifts.Select(shift => shift.End).Concat(new[] { until }).Max();
             if (scheduleUntil > until)
             {
@@ -125,14 +127,25 @@ namespace Toolbox
                 }
                 catch (Exception)
                 {
-                    report.Note = "Submissions were recorded. Sling could not refresh assignment status.";
+                    AddNote(report, "Submissions were recorded. Sling could not refresh assignment status.");
                 }
             }
             progress("Loading recorded work times…");
             await sling.EnrichTimesheets(report.Calendar);
-            if (sling.TimesheetsUnavailable)
-                report.Note = (report.Note == null ? "" : report.Note + " ") + "Some timesheet statuses could not be read from Sling.";
+            if (sling.TimesheetsUnavailable) AddNote(report, "Some timesheet statuses could not be read from Sling.");
             return report;
+        }
+
+        private static void NoteUnreadableOffers(RunReport report, SlingClient sling)
+        {
+            if (sling.UnreadableOffers == 0) return;
+            AddNote(report, sling.UnreadableOffers == 1 ? "1 Sling shift this week had unreadable times and was skipped."
+                : sling.UnreadableOffers + " Sling shifts this week had unreadable times and were skipped.");
+        }
+
+        private static void AddNote(RunReport report, string note)
+        {
+            report.Note = report.Note == null ? note : report.Note + " " + note;
         }
 
         private static void SetPreviewWeek(RunReport report, DateTime? selectedMonday)
